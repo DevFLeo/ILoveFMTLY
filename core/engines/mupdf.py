@@ -57,6 +57,14 @@ def render(path: Path, index: int, zoom: float, rotation: int = 0,
         doc.close()
 
 
+def page_size(path: Path, index: int, rotation: int = 0) -> tuple[float, float]:
+    """Largura e altura visíveis em pontos, considerando a rotação extra."""
+    with pymupdf.open(path) as doc:
+        rect = doc[index].rect
+    w, h = rect.width, rect.height
+    return (h, w) if rotation % 180 else (w, h)
+
+
 def image_to_pdf(img: Path, out: Path) -> Path:
     with pymupdf.open(img) as image_doc:
         pdf_bytes = image_doc.convert_to_pdf()
@@ -122,7 +130,7 @@ def add_watermark(path: Path, text: str, opacity: float = 0.15) -> None:
         start = pymupdf.Point(center.x - width / 2, center.y + fontsize / 3)
         page.insert_text(start, text, fontsize=fontsize, fontname='helv',
                          color=(0.5, 0.5, 0.5), fill_opacity=opacity,
-                         morph=(center, pymupdf.Matrix(-45)), overlay=True)
+                         morph=(center, pymupdf.Matrix(page.rotation - 45)), overlay=True)
     _save_replace(doc, path)
 
 
