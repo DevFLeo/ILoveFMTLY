@@ -1,8 +1,8 @@
 PySide6>=6.8
 PyMuPDF>=1.24
 pikepdf>=9.0
+pywin32>=306  # conversões Word via COM (Windows)
 
 # desenvolvimento
 pytest>=8.0
 pytest-qt>=4.4
-pywin32>=306
