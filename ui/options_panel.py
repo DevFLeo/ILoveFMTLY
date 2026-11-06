@@ -55,6 +55,16 @@ class OptionsPanel(QWidget):
         layout.addWidget(privacy)
         layout.addStretch(1)
 
+    def reset(self) -> None:
+        """Volta aos padrões (usado ao abrir uma ferramenta pelo hub)."""
+        self.page_numbers.setChecked(False)
+        self.watermark.clear()
+        self.compress.setCurrentIndex(0)
+        self.linearize.setChecked(True)
+        self.strip_metadata.setChecked(True)
+        self.password.clear()
+        self.password2.clear()
+
     def options(self, for_print: bool = False) -> ExportOptions:
         """Lê o painel. Levanta ValueError se as senhas não conferem."""
         pw, pw2 = self.password.text(), self.password2.text()

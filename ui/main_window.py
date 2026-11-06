@@ -1,39 +1,65 @@
-"""Janela principal: liga a interface ao core (Document, History, export...)."""
+"""Janela principal: hub de blocos + editor, ligados ao core."""
 
 from pathlib import Path
 
-from PySide6.QtCore import QFileSystemWatcher, Qt, QTimer
-from PySide6.QtGui import QAction, QImage, QKeySequence, QPainter
+from PySide6.QtCore import QFileSystemWatcher, QSize, Qt, QTimer
+from PySide6.QtGui import QAction, QImage, QKeySequence, QMovie, QPainter
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import (QFileDialog, QInputDialog, QLabel, QMainWindow,
-                               QScrollArea, QSplitter, QStyle, QToolBar)
+                               QScrollArea, QSplitter, QStackedWidget, QStyle,
+                               QToolBar, QVBoxLayout, QWidget)
 
 from core import importer, printer
 from core.document import Document
-from core.engines import mupdf, qpdf
+from core.engines import mupdf, qpdf, word
 from core.export import export, split
 from core.history import History
 from core.ranges import parse_ranges
 from core.workspace import Workspace
 from ui import dialogs
+from ui.hub import DropLayer, HubPage
 from ui.options_panel import OptionsPanel
 from ui.thumbnails import ThumbnailGrid
+from ui.tools import BY_ID, Tool, file_filter
 from ui.viewer import Viewer
 from ui.worker import run_in_thread
 
 OPEN_FILTER = 'PDF e imagens (*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)'
+THEME_GIF = Path(__file__).resolve().parent.parent / 'assets' / 'tema.gif'
+GIF_SIZE = 10  # px, no cantinho inferior direito
+
+# Dica mostrada no topo do editor ao abrir cada bloco.
+TOOL_HINTS = {
+    'merge': 'Arraste as miniaturas para definir a ordem e clique em Exportar PDF.',
+    'organize': 'Arraste para reordenar, gire (Ctrl+L / Ctrl+R) e exclua (Del). Depois, Exportar PDF.',
+    'rotate': 'Todas as páginas estão selecionadas: use Girar ↺ / ↻ e depois Exportar PDF.',
+    'extract': 'Selecione as páginas (Ctrl+clique) e clique em Extrair.',
+    'split': 'Informe os intervalos; cada um vira um arquivo.',
+    'compress': 'Compressão com redução de imagens selecionada. Clique em Exportar PDF.',
+    'repair': 'Arquivo recuperado. Confira as páginas e clique em Exportar PDF.',
+    'img2pdf': 'Cada imagem virou uma página. Organize e clique em Exportar PDF.',
+    'word2pdf': 'Documento convertido pelo Word local. Ajuste e clique em Exportar PDF.',
+    'numbers': 'Numeração marcada no painel à direita. Clique em Exportar PDF.',
+    'watermark': "Digite o texto da marca d'água no painel à direita e clique em Exportar PDF.",
+    'protect': 'Defina a senha no painel à direita e clique em Exportar PDF.',
+    'unlock': 'Senha removida da cópia de trabalho. Exporte sem senha para salvar o PDF livre.',
+    'metadata': 'Remoção de metadados marcada. Clique em Exportar PDF.',
+}
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, workspace: Workspace, spool_dir: Path | None = printer.SPOOL_DIR):
+    def __init__(self, workspace: Workspace, spool_dir: Path | None = printer.SPOOL_DIR,
+                 word_ok: bool | None = None):
         super().__init__()
         self.ws = workspace
         self.doc = Document()
         self.history = History(self.doc)
-        self.setWindowTitle('ILoveFMTLY — PDF')
-        self.resize(1280, 800)
+        self.word_ok = word.is_available() if word_ok is None else word_ok
+        self.setWindowTitle('ILoveFMTLY')
+        self.resize(1280, 820)
         self.setAcceptDrops(True)
 
+        # --- editor ---------------------------------------------------------
         self.grid = ThumbnailGrid()
         self.viewer = Viewer()
         self.options = OptionsPanel()
@@ -51,11 +77,33 @@ class MainWindow(QMainWindow):
         split_view.setStretchFactor(1, 1)
         split_view.setStretchFactor(2, 0)
         split_view.setSizes([440, 520, 320])
-        self.setCentralWidget(split_view)
 
+        self.hint_bar = QLabel()
+        self.hint_bar.setObjectName('hintBar')
+        self.hint_bar.setWordWrap(True)
+        self.hint_bar.hide()
+        self.editor = QWidget()
+        editor_layout = QVBoxLayout(self.editor)
+        editor_layout.setContentsMargins(0, 0, 0, 0)
+        editor_layout.setSpacing(0)
+        editor_layout.addWidget(self.hint_bar)
+        editor_layout.addWidget(split_view, 1)
+
+        # --- hub + camada ---------------------------------------------------
+        self.hub = HubPage(self.word_ok)
+        self.hub.tool_clicked.connect(self.run_tool)
+        self.stack = QStackedWidget()
+        self.stack.addWidget(self.hub)
+        self.stack.addWidget(self.editor)
+        self.setCentralWidget(self.stack)
+        self.layer = DropLayer(self.stack, self.word_ok)
+        self.layer.tool_chosen.connect(self.run_tool)
+
+        # --- barra de status --------------------------------------------------
         self.status = QLabel()
-        self.statusBar().addPermanentWidget(QLabel('🔒 Offline — nada sai desta máquina'))
         self.statusBar().addWidget(self.status)
+        self.statusBar().addPermanentWidget(QLabel('🔒 Offline — nada sai desta máquina'))
+        self.theme_gif = self._make_theme_gif()
 
         self._build_actions()
         self.grid.currentRowChanged.connect(self._show_current)
@@ -67,7 +115,20 @@ class MainWindow(QMainWindow):
         self._watcher = None
         if spool_dir is not None:
             self._watch_spool(spool_dir)
-        self.refresh()
+        self.show_hub()
+
+    def _make_theme_gif(self) -> QLabel | None:
+        if not THEME_GIF.exists():
+            return None
+        label = QLabel()
+        label.setObjectName('themeGif')
+        label.setFixedSize(GIF_SIZE, GIF_SIZE)
+        movie = QMovie(str(THEME_GIF), parent=label)
+        movie.setScaledSize(QSize(GIF_SIZE, GIF_SIZE))
+        label.setMovie(movie)
+        movie.start()
+        self.statusBar().addPermanentWidget(label)  # último item: canto inferior direito
+        return label
 
     # --- ações --------------------------------------------------------------
     def _action(self, text, slot, shortcut=None, icon=None, tip=None):
@@ -82,6 +143,8 @@ class MainWindow(QMainWindow):
 
     def _build_actions(self):
         sp = QStyle.StandardPixmap
+        self.act_home = self._action('Início', self.show_hub, 'Alt+Home', sp.SP_DirHomeIcon,
+                                     'Voltar para as ferramentas')
         self.act_import = self._action('Importar', self.import_dialog, 'Ctrl+O', sp.SP_DialogOpenButton,
                                        'Adicionar PDFs ou imagens ao documento')
         self.act_clear = self._action('Novo', self.clear_document, 'Ctrl+N', sp.SP_FileIcon,
@@ -105,13 +168,114 @@ class MainWindow(QMainWindow):
         bar = QToolBar('Ferramentas')
         bar.setMovable(False)
         bar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
-        for act in (self.act_import, self.act_clear, None, self.act_rot_l, self.act_rot_r,
-                    self.act_delete, None, self.act_undo, self.act_redo, None,
+        for act in (self.act_home, None, self.act_import, self.act_clear, None,
+                    self.act_rot_l, self.act_rot_r, self.act_delete, None,
+                    self.act_undo, self.act_redo, None,
                     self.act_extract, self.act_split, self.act_meta, None,
                     self.act_print, self.act_export):
             bar.addSeparator() if act is None else bar.addAction(act)
         self.addToolBar(bar)
         self.toolbar = bar
+        bar.widgetForAction(self.act_export).setObjectName('primary')
+
+    # --- navegação ------------------------------------------------------------
+    def show_hub(self):
+        self.layer.close_layer()
+        self.stack.setCurrentWidget(self.hub)
+        self.toolbar.hide()
+        self.status.setText('Escolha uma ferramenta ou solte arquivos na tela.')
+
+    def show_editor(self, hint: str = ''):
+        self.stack.setCurrentWidget(self.editor)
+        self.toolbar.show()
+        self.hint_bar.setText(hint)
+        self.hint_bar.setVisible(bool(hint))
+
+    def on_hub(self) -> bool:
+        return self.stack.currentWidget() is self.hub
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.layer.isVisible():
+            self.layer.setGeometry(self.stack.rect())
+
+    # --- blocos -------------------------------------------------------------
+    def run_tool(self, tool_id: str, files: list[Path] | None = None):
+        tool = BY_ID[tool_id]
+        if tool.soon or (tool.needs_word and not self.word_ok):
+            return
+        self.layer.close_layer()
+        if files is None:
+            files = self._pick_files(tool)
+            if not files:
+                return
+        files = [Path(f) for f in files]
+        handler = getattr(self, f'_tool_{tool_id}', None)
+        if handler:
+            handler(files)
+        else:
+            self._tool_in_editor(tool, files)
+
+    def _pick_files(self, tool: Tool) -> list[Path]:
+        if tool.multi:
+            chosen, _ = QFileDialog.getOpenFileNames(self, tool.title, '', file_filter(tool))
+        else:
+            one, _ = QFileDialog.getOpenFileName(self, tool.title, '', file_filter(tool))
+            chosen = [one] if one else []
+        return [Path(c) for c in chosen]
+
+    def new_document(self):
+        self.doc.restore(())
+        self.history = History(self.doc)
+        self.options.reset()
+        self.refresh()
+
+    def _tool_in_editor(self, tool: Tool, files: list[Path]):
+        self.new_document()
+        if not self.add_files(files):
+            self.show_hub()
+            return
+        self.show_editor(TOOL_HINTS.get(tool.id, ''))
+        preset = {
+            'rotate': self.grid.selectAll,
+            'compress': lambda: self.options.compress.setCurrentIndex(
+                self.options.compress.findData('lossy')),
+            'numbers': lambda: self.options.page_numbers.setChecked(True),
+            'watermark': self.options.watermark.setFocus,
+            'protect': self.options.password.setFocus,
+            'metadata': lambda: self.options.strip_metadata.setChecked(True),
+            'split': lambda: QTimer.singleShot(0, self.split_dialog),
+        }.get(tool.id)
+        if preset:
+            preset()
+
+    def _tool_word2pdf(self, files: list[Path]):
+        def convert():
+            return [word.to_pdf(f, self.ws.unique_path(f.stem + '.pdf')) for f in files]
+
+        def done(pdfs):
+            self._tool_in_editor(BY_ID['word2pdf'], pdfs)
+
+        self._run('Convertendo com o Word…', convert, on_done=done)
+
+    def _tool_pdf2word(self, files: list[Path]):
+        src = self._import_with_password(files[0])
+        if src is None:
+            return
+        out, _ = QFileDialog.getSaveFileName(self, 'Salvar como Word', files[0].stem + '.docx',
+                                             'Documento do Word (*.docx)')
+        if out:
+            self._run('Convertendo com o Word…', word.pdf_to_docx, src, Path(out),
+                      done_msg=lambda p: f'Documento salvo em:\n{p}')
+
+    def _tool_pdf2img(self, files: list[Path]):
+        src = self._import_with_password(files[0])
+        if src is None:
+            return
+        folder = QFileDialog.getExistingDirectory(self, 'Pasta para as imagens')
+        if folder:
+            self._run('Gerando imagens…', mupdf.export_images, src, Path(folder), files[0].stem,
+                      done_msg=lambda imgs: f'{len(imgs)} imagem(ns) salvas em:\n{folder}')
 
     # --- estado -------------------------------------------------------------
     def refresh(self, selected: list[int] | None = None):
@@ -129,6 +293,8 @@ class MainWindow(QMainWindow):
             act.setEnabled(n > 0)
         self.act_undo.setEnabled(self.history.can_undo())
         self.act_redo.setEnabled(self.history.can_redo())
+        if self.on_hub():
+            return
         if n == 0:
             self.status.setText('Arraste PDFs ou imagens para cá, ou use Importar (Ctrl+O).')
         else:
@@ -144,34 +310,40 @@ class MainWindow(QMainWindow):
         self.refresh(selected)
 
     # --- edição -------------------------------------------------------------
+    def _import_with_password(self, src: Path) -> Path | None:
+        """Copia para o workspace pedindo a senha quando preciso. None se cancelado/erro."""
+        password, retry = None, False
+        while True:
+            try:
+                return importer.import_file(self.ws, src, password)
+            except importer.PasswordRequired:
+                pass
+            except importer.WrongPassword:
+                retry = True
+            except (importer.UnsupportedFile, qpdf.PdfRepairError) as exc:
+                dialogs.error(self, 'Não foi possível importar', str(exc))
+                return None
+            password = dialogs.ask_password(self, Path(src).name, retry)
+            if password is None:
+                return None
+
     def add_files(self, paths: list[Path]) -> int:
-        """Importa arquivos (pedindo senha quando preciso). Devolve quantos entraram."""
+        """Importa arquivos para o documento aberto. Devolve quantos entraram."""
         imported = []
         for src in paths:
             src = Path(src)
             if src.is_dir():
                 continue
-            password, retry = None, False
-            while True:
-                try:
-                    copy = importer.import_file(self.ws, src, password)
-                    imported.append(copy)
-                    break
-                except importer.PasswordRequired:
-                    pass
-                except importer.WrongPassword:
-                    retry = True
-                except (importer.UnsupportedFile, qpdf.PdfRepairError) as exc:
-                    dialogs.error(self, 'Não foi possível importar', str(exc))
-                    break
-                password = dialogs.ask_password(self, src.name, retry)
-                if password is None:
-                    break
+            copy = self._import_with_password(src)
+            if copy is not None:
+                imported.append(copy)
         if imported:
             start = len(self.doc)
             self.history.record()
             for path in imported:
                 self.doc.add_source(path, mupdf.page_count(path))
+            if self.on_hub():
+                self.show_editor()
             self.refresh([start])
         return len(imported)
 
@@ -217,6 +389,7 @@ class MainWindow(QMainWindow):
 
     def _busy(self, on: bool, text: str = ''):
         self.toolbar.setEnabled(not on)
+        self.hub.setEnabled(not on)
         if on:
             self.status.setText(text)
             self.setCursor(Qt.WaitCursor)
@@ -224,11 +397,16 @@ class MainWindow(QMainWindow):
             self.unsetCursor()
             self._update_state()
 
-    def _run(self, text, fn, *args, done_msg=None):
+    def is_busy(self) -> bool:
+        return not self.hub.isEnabled()
+
+    def _run(self, text, fn, *args, done_msg=None, on_done=None):
         self._busy(True, text)
 
         def ok(result):
             self._busy(False)
+            if on_done:
+                on_done(result)
             if done_msg:
                 dialogs.info(self, 'Pronto', done_msg(result))
 
@@ -262,6 +440,8 @@ class MainWindow(QMainWindow):
 
     def split_dialog(self):
         n = len(self.doc)
+        if not n:
+            return
         text, ok = QInputDialog.getText(
             self, 'Dividir', f'Intervalos separados por vírgula (1 a {n}).\n'
                              'Cada intervalo vira um arquivo. Ex.: 1-3, 4, 5-8', text=f'1-{n}')
@@ -346,6 +526,7 @@ class MainWindow(QMainWindow):
         files = printer.collect(self.ws, self._spool_dir)
         if files:
             self.add_files(files)
+            self.show_editor('Impressão recebida da impressora "ILoveFMTLY PDF".')
             self.raise_()
             self.activateWindow()
 
@@ -354,8 +535,17 @@ class MainWindow(QMainWindow):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
 
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
     def dropEvent(self, event):
         paths = [Path(u.toLocalFile()) for u in event.mimeData().urls() if u.isLocalFile()]
-        if paths:
-            event.acceptProposedAction()
+        paths = [p for p in paths if p.is_file()]
+        if not paths:
+            return
+        event.acceptProposedAction()
+        if self.on_hub():
+            self.layer.show_for(paths)
+        else:
             self.add_files(paths)

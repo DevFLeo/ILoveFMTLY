@@ -53,13 +53,16 @@ def drop_files(widget, paths):
 
 
 def test_drop_files_on_grid(window, make_pdf, make_png):
+    window.show_editor()
     drop_files(window.grid.viewport(), [make_pdf(2), make_png()])
     assert len(window.doc) == 3
 
 
-def test_drop_files_on_window(window, make_pdf):
+def test_drop_files_on_window_in_editor(window, make_pdf):
+    window.show_editor()
     drop_files(window, [make_pdf(4)])
     assert len(window.doc) == 4
+    assert not window.layer.isVisible()
 
 
 def test_merge_two_files(window, make_pdf):
