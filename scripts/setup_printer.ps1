@@ -41,7 +41,11 @@ if ($Remove) {
 New-Item -ItemType Directory -Force -Path $SpoolDir | Out-Null
 
 if (-not (Get-PrinterDriver -Name $Driver -ErrorAction SilentlyContinue)) {
-    Write-Error "Driver '$Driver' não encontrado. Ative o recurso 'Microsoft Print to PDF' do Windows."
+    Write-Host "Driver '$Driver' ausente. Ativando o recurso do Windows (local, sem download)..."
+    Enable-WindowsOptionalFeature -Online -FeatureName 'Printing-PrintToPDFServices-Features' -All -NoRestart | Out-Null
+    if (-not (Get-PrinterDriver -Name $Driver -ErrorAction SilentlyContinue)) {
+        Write-Error "Driver '$Driver' continua indisponível. Reinicie o Windows e rode o script de novo."
+    }
 }
 if (-not (Get-PrinterPort -Name $PortName -ErrorAction SilentlyContinue)) {
     Add-PrinterPort -Name $PortName

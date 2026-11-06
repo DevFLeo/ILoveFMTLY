@@ -291,11 +291,15 @@ class MainWindow(QMainWindow):
         dialogs.MetadataDialog(self, entries).exec()
 
     def print_dialog(self):
-        opts = self._read_options(for_print=True)
-        if opts is None or not len(self.doc):
+        if not len(self.doc):
             return
         qprinter = QPrinter(QPrinter.HighResolution)
-        if QPrintDialog(qprinter, self).exec() != QPrintDialog.Accepted:
+        if QPrintDialog(qprinter, self).exec() == QPrintDialog.Accepted:
+            self.print_to(qprinter)
+
+    def print_to(self, qprinter: QPrinter):
+        opts = self._read_options(for_print=True)
+        if opts is None or not len(self.doc):
             return
         tmp = self.ws.unique_path('impressao.pdf')
         self._busy(True, 'Preparando impressão…')
