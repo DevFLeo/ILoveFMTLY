@@ -148,7 +148,7 @@ def test_word_disabled_without_word(qtbot, tmp_path):
     qtbot.addWidget(w)
     card = next(c for c in w.hub.cards if c.tool.id == 'word2pdf')
     assert card.property('disabled')
-    assert 'Requer Microsoft Word' in card.toolTip()
+    assert 'Requer Microsoft Office' in card.toolTip()
     w.run_tool('word2pdf', [tmp_path / 'a.docx'])
     assert w.on_hub()
 

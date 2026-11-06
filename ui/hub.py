@@ -1,27 +1,29 @@
-"""Tela inicial: grade de blocos de ferramentas e a camada de compatíveis.
+"""Tela inicial: grade de blocos de ferramentas, busca e a camada de compatíveis.
 
 Ao soltar arquivos no hub, a DropLayer sobe por cima mostrando só os blocos
-que aceitam aqueles arquivos.
+que aceitam aqueles arquivos. Os blocos funcionam com teclado: Tab navega,
+Enter ou Espaço abrem.
 """
 
+import unicodedata
 from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton,
-                               QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
+                               QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
+from ui.style import set_prop
+from ui.theme import GROUP_GLYPH, Size, Space
 from ui.tools import GROUPS, TOOLS, Tool, compatible
 
 COLUMNS = 4
-GLYPH_COLORS = {  # cor do quadradinho do ícone por grupo (paleta do tema)
-    'Organizar': ('#FDA481', '#181A2F'),
-    'Otimizar': ('#37415C', '#FDA481'),
-    'Converter': ('#B4182D', '#F3F4F8'),
-    'Editar': ('#54162B', '#FDA481'),
-    'Segurança': ('#FDA481', '#54162B'),
-    'Em breve': ('#37415C', '#AEB4C8'),
-}
+
+
+def _fold(text: str) -> str:
+    """Minúsculas sem acento, para a busca ignorar "ç", "ã"..."""
+    return ''.join(c for c in unicodedata.normalize('NFD', text.lower())
+                   if unicodedata.category(c) != 'Mn')
 
 
 class ToolCard(QFrame):
@@ -30,18 +32,21 @@ class ToolCard(QFrame):
     def __init__(self, tool: Tool, enabled: bool, reason: str = ''):
         super().__init__()
         self.tool = tool
+        self._enabled = enabled
         self.setObjectName('card')
         self.setProperty('disabled', not enabled)
         self.setCursor(Qt.PointingHandCursor if enabled else Qt.ArrowCursor)
+        self.setFocusPolicy(Qt.StrongFocus if enabled else Qt.NoFocus)
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setFixedHeight(132)
-        self._enabled = enabled
+        self.setFixedHeight(Size.CARD_HEIGHT)
+        self.setAccessibleName(tool.title)
+        self.setAccessibleDescription(reason or tool.desc)
 
-        bg, fg = GLYPH_COLORS.get(tool.group, GLYPH_COLORS['Em breve'])
+        bg, fg = GROUP_GLYPH.get(tool.group, GROUP_GLYPH['Em breve'])
         glyph = QLabel(tool.glyph, alignment=Qt.AlignCenter)
         glyph.setObjectName('glyph')
-        glyph.setFixedSize(36, 36)
-        glyph.setStyleSheet(f'background:{bg}; color:{fg};')
+        glyph.setFixedSize(Size.GLYPH, Size.GLYPH)
+        glyph.setStyleSheet(f'background:{bg}; color:{fg};')  # cor por grupo vem dos tokens
 
         title = QLabel(tool.title)
         title.setObjectName('cardTitle')
@@ -51,41 +56,68 @@ class ToolCard(QFrame):
         desc.setAlignment(Qt.AlignTop | Qt.AlignLeft)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 14, 16, 12)
-        layout.setSpacing(6)
+        layout.setContentsMargins(Space.LG, Space.MD, Space.LG, Space.MD)
+        layout.setSpacing(Space.SM)
         layout.addWidget(glyph)
         layout.addWidget(title)
         layout.addWidget(desc, 1)
         self.setToolTip(reason or tool.desc)
+        self.search_text = _fold(f'{tool.title} {tool.desc} {tool.group} {" ".join(tool.accepts)}')
+
+    def activate(self):
+        if self._enabled:
+            self.clicked.emit(self.tool.id)
+
+    def mousePressEvent(self, event):
+        if self._enabled and event.button() == Qt.LeftButton:
+            set_prop(self, 'pressed', True)
+        super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if self._enabled and event.button() == Qt.LeftButton and self.rect().contains(event.position().toPoint()):
-            self.clicked.emit(self.tool.id)
+        set_prop(self, 'pressed', False)
+        if event.button() == Qt.LeftButton and self.rect().contains(event.position().toPoint()):
+            self.activate()
         super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):
+            self.activate()
+        else:
+            super().keyPressEvent(event)
 
 
 def _availability(tool: Tool, word_ok: bool) -> tuple[bool, str]:
     if tool.soon:
         return False, ''
     if tool.needs_word and not word_ok:
-        return False, 'Requer Microsoft Word instalado.'
+        return False, 'Requer Microsoft Office instalado.'
     return True, ''
 
 
-def _card_grid(tools: list[Tool], word_ok: bool, on_click: Callable[[str], None]) -> QWidget:
-    box = QWidget()
-    grid = QGridLayout(box)
-    grid.setContentsMargins(0, 0, 0, 0)
-    grid.setHorizontalSpacing(14)
-    grid.setVerticalSpacing(14)
-    for i, tool in enumerate(tools):
-        enabled, reason = _availability(tool, word_ok)
-        card = ToolCard(tool, enabled, reason)
-        card.clicked.connect(on_click)
-        grid.addWidget(card, i // COLUMNS, i % COLUMNS)
-    for col in range(COLUMNS):
-        grid.setColumnStretch(col, 1)
-    return box
+class CardGrid(QWidget):
+    def __init__(self, tools: list[Tool], word_ok: bool, on_click: Callable[[str], None]):
+        super().__init__()
+        self.grid = QGridLayout(self)
+        self.grid.setContentsMargins(0, 0, 0, 0)
+        self.grid.setHorizontalSpacing(Space.MD)
+        self.grid.setVerticalSpacing(Space.MD)
+        for col in range(COLUMNS):
+            self.grid.setColumnStretch(col, 1)
+        self.cards: list[ToolCard] = []
+        for tool in tools:
+            enabled, reason = _availability(tool, word_ok)
+            card = ToolCard(tool, enabled, reason)
+            card.clicked.connect(on_click)
+            self.cards.append(card)
+        self.layout_cards(self.cards)
+
+    def layout_cards(self, visible: list[ToolCard]) -> None:
+        for card in self.cards:
+            self.grid.removeWidget(card)
+            card.hide()
+        for i, card in enumerate(visible):
+            self.grid.addWidget(card, i // COLUMNS, i % COLUMNS)
+            card.show()
 
 
 class HubPage(QScrollArea):
@@ -97,12 +129,13 @@ class HubPage(QScrollArea):
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.cards: list[ToolCard] = []
+        self.sections: list[tuple[QLabel, CardGrid]] = []
 
         body = QWidget()
         body.setObjectName('hubBody')
         layout = QVBoxLayout(body)
-        layout.setContentsMargins(40, 32, 40, 32)
-        layout.setSpacing(10)
+        layout.setContentsMargins(Space.XXXL, Space.XXL, Space.XXXL, Space.XXL)
+        layout.setSpacing(Space.SM)
 
         title = QLabel('Ferramentas para seus documentos')
         title.setObjectName('hubTitle')
@@ -110,8 +143,19 @@ class HubPage(QScrollArea):
                           'desta tela para ver o que dá para fazer com eles.')
         subtitle.setObjectName('hubSubtitle')
         subtitle.setWordWrap(True)
+        self.search = QLineEdit(placeholderText='Buscar ferramenta…  (ex.: gif, word, senha, comprimir)')
+        self.search.setObjectName('hubSearch')
+        self.search.setClearButtonEnabled(True)
+        self.search.textChanged.connect(self.filter)
+        self.empty = QLabel('Nenhuma ferramenta encontrada.')
+        self.empty.setProperty('tone', 'muted')
+        self.empty.hide()
+
         layout.addWidget(title)
         layout.addWidget(subtitle)
+        layout.addSpacing(Space.MD)
+        layout.addWidget(self.search)
+        layout.addWidget(self.empty)
 
         for group in GROUPS:
             tools = [t for t in TOOLS if t.group == group]
@@ -119,13 +163,27 @@ class HubPage(QScrollArea):
                 continue
             header = QLabel(group.upper())
             header.setObjectName('groupHeader')
-            layout.addSpacing(14)
+            grid = CardGrid(tools, word_ok, self.tool_clicked.emit)
+            layout.addSpacing(Space.LG)
             layout.addWidget(header)
-            grid = _card_grid(tools, word_ok, self.tool_clicked.emit)
-            self.cards.extend(grid.findChildren(ToolCard))
             layout.addWidget(grid)
+            self.cards.extend(grid.cards)
+            self.sections.append((header, grid))
         layout.addStretch(1)
         self.setWidget(body)
+
+    def filter(self, text: str) -> int:
+        """Mostra só os blocos que casam com a busca. Devolve quantos ficaram."""
+        terms = _fold(text).split()
+        total = 0
+        for header, grid in self.sections:
+            visible = [c for c in grid.cards if all(t in c.search_text for t in terms)]
+            grid.layout_cards(visible)
+            header.setVisible(bool(visible))
+            grid.setVisible(bool(visible))
+            total += len(visible)
+        self.empty.setVisible(total == 0)
+        return total
 
 
 class DropLayer(QFrame):
@@ -146,10 +204,10 @@ class DropLayer(QFrame):
         self.file_label = QLabel()
         self.file_label.setObjectName('fileChip')
         self.hint = QLabel()
-        self.hint.setObjectName('hubSubtitle')
+        self.hint.setObjectName('layerHint')
         self.hint.setWordWrap(True)
         cancel = QPushButton('Cancelar', clicked=self.close_layer)
-        cancel.setObjectName('ghost')
+        cancel.setProperty('variant', 'ghost')
 
         top = QHBoxLayout()
         top.addWidget(self.file_label, 1)
@@ -157,17 +215,22 @@ class DropLayer(QFrame):
 
         self.grid_holder = QVBoxLayout()
         panel_layout = QVBoxLayout(self.panel)
-        panel_layout.setContentsMargins(28, 24, 28, 24)
-        panel_layout.setSpacing(12)
+        panel_layout.setContentsMargins(Space.XL, Space.XL, Space.XL, Space.XL)
+        panel_layout.setSpacing(Space.MD)
         panel_layout.addLayout(top)
         panel_layout.addWidget(self.hint)
         panel_layout.addLayout(self.grid_holder)
 
+        scroll = QScrollArea()
+        scroll.setWidget(self.panel)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setStyleSheet('background: transparent;')
+        scroll.setMaximumWidth(1120)
+
         outer = QVBoxLayout(self)
-        outer.setContentsMargins(40, 40, 40, 40)
-        outer.addStretch(1)
-        outer.addWidget(self.panel, 0, Qt.AlignHCenter)
-        outer.addStretch(2)
+        outer.setContentsMargins(Space.XXXL, Space.XXXL, Space.XXXL, Space.XXXL)
+        outer.addWidget(scroll, 1, Qt.AlignHCenter)
         self.hide()
 
     def show_for(self, files: list[Path]) -> list[Tool]:
@@ -185,8 +248,8 @@ class DropLayer(QFrame):
         if tools:
             self.hint.setText('O que você quer fazer com este arquivo?' if len(self.files) == 1
                               else 'O que você quer fazer com estes arquivos?')
-            grid = _card_grid(tools, self.word_ok, lambda tid: self.tool_chosen.emit(tid, self.files))
-            self.cards = grid.findChildren(ToolCard)
+            grid = CardGrid(tools, self.word_ok, lambda tid: self.tool_chosen.emit(tid, self.files))
+            self.cards = grid.cards
             self.grid_holder.addWidget(grid)
         else:
             self.cards = []
@@ -195,6 +258,8 @@ class DropLayer(QFrame):
         self.setGeometry(self.parentWidget().rect())
         self.raise_()
         self.show()
+        focusable = [c for c in self.cards if c.focusPolicy() != Qt.NoFocus]
+        (focusable[0] if focusable else self).setFocus()
         return tools
 
     def close_layer(self):
@@ -209,6 +274,6 @@ class DropLayer(QFrame):
 
     def mousePressEvent(self, event):
         # clique fora do painel fecha a camada
-        if not self.panel.geometry().contains(event.position().toPoint()):
+        if not self.panel.geometry().contains(self.panel.parentWidget().mapFrom(self, event.position().toPoint())):
             self.close_layer()
         super().mousePressEvent(event)

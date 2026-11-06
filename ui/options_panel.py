@@ -4,6 +4,7 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QFormLayout, QGroupBox,
                                QLabel, QLineEdit, QVBoxLayout, QWidget)
 
 from core.export import ExportOptions
+from ui.style import set_prop
 
 COMPRESSION = [('Sem perda (recomendado)', 'lossless'),
                ('Reduzir imagens (com perda)', 'lossy'),
@@ -44,16 +45,30 @@ class OptionsPanel(QWidget):
         form.addRow(self.strip_metadata)
         form.addRow('Senha', self.password)
         form.addRow('Confirmar', self.password2)
+        self.password_error = QLabel('As senhas não conferem.')
+        self.password_error.setProperty('tone', 'error')
+        self.password_error.hide()
+        form.addRow(self.password_error)
         hint = QLabel('AES-256. Sem a senha, ninguém abre o arquivo — nem o ILoveFMTLY.')
         hint.setWordWrap(True)
-        hint.setObjectName('muted')
+        hint.setProperty('tone', 'muted')
         form.addRow(hint)
+        self.password.textChanged.connect(self._check_passwords)
+        self.password2.textChanged.connect(self._check_passwords)
 
         layout = QVBoxLayout(self)
         layout.addWidget(content)
         layout.addWidget(size)
         layout.addWidget(privacy)
         layout.addStretch(1)
+
+    def _check_passwords(self) -> bool:
+        """Erro inline enquanto a confirmação não bate. Devolve True se ok."""
+        pw, pw2 = self.password.text(), self.password2.text()
+        mismatch = bool(pw2) and pw != pw2
+        set_prop(self.password2, 'state', 'error' if mismatch else '')
+        self.password_error.setVisible(mismatch)
+        return not mismatch
 
     def reset(self) -> None:
         """Volta aos padrões (usado ao abrir uma ferramenta pelo hub)."""
@@ -69,6 +84,9 @@ class OptionsPanel(QWidget):
         """Lê o painel. Levanta ValueError se as senhas não conferem."""
         pw, pw2 = self.password.text(), self.password2.text()
         if pw != pw2:
+            set_prop(self.password2, 'state', 'error')
+            self.password_error.show()
+            self.password2.setFocus()
             raise ValueError('As senhas não conferem.')
         opts = ExportOptions(
             page_numbers=self.page_numbers.isChecked(),

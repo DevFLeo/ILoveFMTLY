@@ -6,7 +6,7 @@ from PySide6.QtCore import QFileSystemWatcher, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QImage, QKeySequence, QMovie, QPainter
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
 from PySide6.QtWidgets import (QFileDialog, QInputDialog, QLabel, QMainWindow,
-                               QScrollArea, QSplitter, QStackedWidget, QStyle,
+                               QScrollArea, QSizePolicy, QSplitter, QStackedWidget,
                                QToolBar, QVBoxLayout, QWidget)
 
 from core import importer, printer
@@ -18,15 +18,17 @@ from core.ranges import parse_ranges
 from core.workspace import Workspace
 from ui import dialogs
 from ui.hub import DropLayer, HubPage
+from ui.icons import glyph_icon
+from ui.style import set_prop
 from ui.options_panel import OptionsPanel
 from ui.thumbnails import ThumbnailGrid
 from ui.tools import BY_ID, Tool, file_filter
+from ui.theme import ASSETS, Size
 from ui.viewer import Viewer
 from ui.worker import run_in_thread
 
 OPEN_FILTER = 'PDF e imagens (*.pdf *.png *.jpg *.jpeg *.bmp *.tif *.tiff *.webp)'
-THEME_GIF = Path(__file__).resolve().parent.parent / 'assets' / 'tema.gif'
-GIF_SIZE = 10  # px, no cantinho inferior direito
+THEME_GIF = ASSETS / 'tema.gif'
 
 # Dica mostrada no topo do editor ao abrir cada bloco.
 TOOL_HINTS = {
@@ -122,9 +124,9 @@ class MainWindow(QMainWindow):
             return None
         label = QLabel()
         label.setObjectName('themeGif')
-        label.setFixedSize(GIF_SIZE, GIF_SIZE)
+        label.setFixedSize(Size.THEME_GIF, Size.THEME_GIF)
         movie = QMovie(str(THEME_GIF), parent=label)
-        movie.setScaledSize(QSize(GIF_SIZE, GIF_SIZE))
+        movie.setScaledSize(QSize(Size.THEME_GIF, Size.THEME_GIF))
         label.setMovie(movie)
         movie.start()
         self.statusBar().addPermanentWidget(label)  # último item: canto inferior direito
@@ -137,46 +139,57 @@ class MainWindow(QMainWindow):
         if shortcut:
             act.setShortcut(QKeySequence(shortcut))
         if icon is not None:
-            act.setIcon(self.style().standardIcon(icon))
+            act.setIcon(glyph_icon(icon))
         act.setToolTip(f'{tip or text} ({shortcut})' if shortcut else (tip or text))
         return act
 
     def _build_actions(self):
-        sp = QStyle.StandardPixmap
-        self.act_home = self._action('Início', self.show_hub, 'Alt+Home', sp.SP_DirHomeIcon,
+        self.act_home = self._action('Início', self.show_hub, 'Alt+Home', '⌂',
                                      'Voltar para as ferramentas')
-        self.act_import = self._action('Importar', self.import_dialog, 'Ctrl+O', sp.SP_DialogOpenButton,
+        self.act_import = self._action('Importar', self.import_dialog, 'Ctrl+O', '⊕',
                                        'Adicionar PDFs ou imagens ao documento')
-        self.act_clear = self._action('Novo', self.clear_document, 'Ctrl+N', sp.SP_FileIcon,
+        self.act_clear = self._action('Novo', self.clear_document, 'Ctrl+N', '▢',
                                       'Começar um documento vazio')
-        self.act_rot_l = self._action('Girar ↺', lambda: self.rotate(-90), 'Ctrl+L')
-        self.act_rot_r = self._action('Girar ↻', lambda: self.rotate(90), 'Ctrl+R')
-        self.act_delete = self._action('Excluir', self.delete_selected, 'Del', sp.SP_TrashIcon,
+        self.act_rot_l = self._action('Girar', lambda: self.rotate(-90), 'Ctrl+L', '↺', 'Girar para a esquerda')
+        self.act_rot_r = self._action('Girar', lambda: self.rotate(90), 'Ctrl+R', '↻', 'Girar para a direita')
+        self.act_delete = self._action('Excluir', self.delete_selected, 'Del', '✕',
                                        'Excluir páginas selecionadas')
-        self.act_undo = self._action('Desfazer', self.undo, 'Ctrl+Z', sp.SP_ArrowBack)
-        self.act_redo = self._action('Refazer', self.redo, 'Ctrl+Y', sp.SP_ArrowForward)
-        self.act_extract = self._action('Extrair', self.extract_dialog, 'Ctrl+E', None,
+        self.act_undo = self._action('Desfazer', self.undo, 'Ctrl+Z', '↶')
+        self.act_redo = self._action('Refazer', self.redo, 'Ctrl+Y', '↷')
+        self.act_extract = self._action('Extrair', self.extract_dialog, 'Ctrl+E', '⇱',
                                         'Salvar só as páginas selecionadas')
-        self.act_split = self._action('Dividir', self.split_dialog, 'Ctrl+D', None,
+        self.act_split = self._action('Dividir', self.split_dialog, 'Ctrl+D', '✂',
                                       'Dividir em vários arquivos por intervalos')
-        self.act_meta = self._action('Metadados', self.show_metadata, None, sp.SP_FileDialogInfoView,
+        self.act_meta = self._action('Metadados', self.show_metadata, None, 'ⓘ',
                                      'Ver metadados dos arquivos de origem')
-        self.act_print = self._action('Imprimir', self.print_dialog, 'Ctrl+P', None)
-        self.act_export = self._action('Exportar PDF', self.export_dialog, 'Ctrl+S', sp.SP_DialogSaveButton,
+        self.act_print = self._action('Imprimir', self.print_dialog, 'Ctrl+P', '⎙')
+        self.act_export = self._action('Exportar PDF', self.export_dialog, 'Ctrl+S', None,
                                        'Gravar o documento final')
 
         bar = QToolBar('Ferramentas')
         bar.setMovable(False)
         bar.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+        spacer = QWidget()
+        spacer.setObjectName('toolbarSpacer')
+        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         for act in (self.act_home, None, self.act_import, self.act_clear, None,
                     self.act_rot_l, self.act_rot_r, self.act_delete, None,
                     self.act_undo, self.act_redo, None,
-                    self.act_extract, self.act_split, self.act_meta, None,
+                    self.act_extract, self.act_split, self.act_meta, 'spacer',
                     self.act_print, self.act_export):
-            bar.addSeparator() if act is None else bar.addAction(act)
+            if act is None:
+                bar.addSeparator()
+            elif act == 'spacer':
+                bar.addWidget(spacer)  # empurra Imprimir/Exportar para a direita
+            else:
+                bar.addAction(act)
+        # ações de ícone óbvio ficam só com ícone (texto no tooltip) para caber a barra
+        for act in (self.act_rot_l, self.act_rot_r, self.act_undo, self.act_redo):
+            bar.widgetForAction(act).setToolButtonStyle(Qt.ToolButtonIconOnly)
         self.addToolBar(bar)
         self.toolbar = bar
-        bar.widgetForAction(self.act_export).setObjectName('primary')
+        export_btn = bar.widgetForAction(self.act_export)
+        set_prop(export_btn, 'variant', 'primary')
 
     # --- navegação ------------------------------------------------------------
     def show_hub(self):

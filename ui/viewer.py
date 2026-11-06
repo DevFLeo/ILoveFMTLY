@@ -12,9 +12,10 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QPushButton, QScrollArea,
 
 from core.document import PageRef
 from core.engines import mupdf
+from ui.theme import Size, Space
 
 ZOOM_STEPS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 3.0, 4.0]
-MARGIN = 32
+MARGIN = Space.XXL
 
 
 class _Scroll(QScrollArea):
@@ -46,20 +47,20 @@ class Viewer(QWidget):
         self.scroll.setAlignment(Qt.AlignCenter)
 
         self.info = QLabel('Nenhuma página selecionada')
-        self.info.setObjectName('muted')
+        self.info.setProperty('tone', 'muted')
         minus = QPushButton('−', clicked=lambda: self.zoom_by(-1))
         plus = QPushButton('+', clicked=lambda: self.zoom_by(1))
         fit = QPushButton('Ajustar', clicked=self.fit_width)
         for b in (minus, plus):
-            b.setFixedWidth(32)
+            b.setFixedWidth(Size.ICON_BUTTON)
         for b in (minus, plus, fit):
-            b.setObjectName('ghost')
+            b.setProperty('variant', 'ghost')
         self.zoom_label = QLabel()
         self.zoom_label.setMinimumWidth(44)
         self.zoom_label.setAlignment(Qt.AlignCenter)
 
         bar = QHBoxLayout()
-        bar.setContentsMargins(8, 6, 8, 6)
+        bar.setContentsMargins(Space.SM, Space.SM, Space.SM, Space.SM)
         bar.addWidget(self.info, 1)
         bar.addWidget(fit)
         bar.addWidget(minus)

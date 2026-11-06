@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QAbstractItemView, QListView, QListWidget, QListWi
 
 from core.document import PageRef
 from core.engines import mupdf
+from ui.theme import Space
 
 THUMB_ZOOM = 0.3
 THUMB_SIZE = QSize(150, 190)
@@ -27,7 +28,7 @@ class ThumbnailGrid(QListWidget):
         self.setMovement(QListView.Snap)
         self.setIconSize(THUMB_SIZE)
         self.setGridSize(QSize(THUMB_SIZE.width() + 24, THUMB_SIZE.height() + 36))
-        self.setSpacing(6)
+        self.setSpacing(Space.SM)
         self.setUniformItemSizes(True)
         self.setSelectionMode(QAbstractItemView.ExtendedSelection)
         self.setDragDropMode(QAbstractItemView.DragDrop)
