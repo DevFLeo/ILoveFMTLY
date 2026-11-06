@@ -54,6 +54,16 @@ def test_render_png(make_pdf):
     assert data.startswith(b'\x89PNG')
 
 
+def test_export_images(make_pdf, tmp_path):
+    out = tmp_path / 'imgs'
+    out.mkdir()
+    files = mupdf.export_images(make_pdf(3), out, 'doc')
+    assert [f.name for f in files] == ['doc_p001.png', 'doc_p002.png', 'doc_p003.png']
+    assert files[0].read_bytes().startswith(b'\x89PNG')
+    jpgs = mupdf.export_images(make_pdf(1), out, 'doc', fmt='jpg')
+    assert jpgs[0].read_bytes().startswith(b'\xff\xd8')
+
+
 def test_compress_images_keeps_pages(make_pdf):
     a = make_pdf(2)
     mupdf.compress_images(a)

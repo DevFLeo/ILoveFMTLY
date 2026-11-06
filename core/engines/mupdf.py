@@ -141,6 +141,28 @@ def compress_images(path: Path, dpi: int = 150, quality: int = 70) -> None:
     _save_replace(doc, path)
 
 
+def export_images(path: Path, out_dir: Path, stem: str, fmt: str = 'png',
+                  dpi: int = 150) -> list[Path]:
+    """Cada página vira uma imagem: {stem}_p001.png, {stem}_p002.png..."""
+    out_dir = Path(out_dir)
+    zoom = dpi / 72
+    results = []
+    with pymupdf.open(path) as doc:
+        for n, page in enumerate(doc, start=1):
+            target = out_dir / f'{stem}_p{n:03}.{fmt}'
+            k = 2
+            while target.exists():
+                target = out_dir / f'{stem}_p{n:03} ({k}).{fmt}'
+                k += 1
+            pix = page.get_pixmap(matrix=pymupdf.Matrix(zoom, zoom), alpha=False)
+            if fmt == 'jpg':
+                pix.save(target, jpg_quality=90)
+            else:
+                pix.save(target)
+            results.append(target)
+    return results
+
+
 def extract_text(path: Path, index: int) -> str:
     with pymupdf.open(path) as doc:
         return doc[index].get_text()
