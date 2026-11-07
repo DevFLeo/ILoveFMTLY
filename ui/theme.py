@@ -43,10 +43,11 @@ class Type:
 
 
 class Radius:
-    SM = 4    # checkbox, scrollbar
-    MD = 8    # botões, campos, glifo, miniaturas, chip
-    LG = 12   # cartões, grupos
-    XL = 16   # painel da camada
+    XS = 3    # scrollbar (6 px de largura: pílula), trilho do recorte de vídeo
+    SM = 5    # checkbox
+    MD = 12   # botões, campos, glifo, miniaturas, chip
+    LG = 18   # cartões, grupos, busca
+    XL = 24   # painel da camada
 
 
 class Space:

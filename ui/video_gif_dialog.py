@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (QComboBox, QDialog, QHBoxLayout, QLabel, QPushBut
 
 from core import video
 from ui.icons import svg_icon
-from ui.theme import Color, Space
+from ui.theme import Color, Radius, Space
 
 PREVIEW = (640, 360)
 HANDLE_W, TRACK_H = 8, 4
@@ -88,13 +88,13 @@ class Timeline(QWidget):
         mid = self.height() / 2
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(Color.BORDER))
-        p.drawRoundedRect(QRectF(HANDLE_W / 2, mid - TRACK_H / 2, self.width() - HANDLE_W, TRACK_H), 2, 2)
+        p.drawRoundedRect(QRectF(HANDLE_W / 2, mid - TRACK_H / 2, self.width() - HANDLE_W, TRACK_H), Radius.XS, Radius.XS)
         a, b = self._x(self.start), self._x(self.end)
         p.setBrush(QColor(Color.WINE))
         p.drawRect(QRectF(a, mid - 8, b - a, 16))
         p.setBrush(QColor(Color.ACCENT))
         for x in (a, b):
-            p.drawRoundedRect(QRectF(x - HANDLE_W / 2, mid - 12, HANDLE_W, 24), 2, 2)
+            p.drawRoundedRect(QRectF(x - HANDLE_W / 2, mid - 12, HANDLE_W, 24), Radius.XS, Radius.XS)
         p.setPen(QPen(QColor(Color.TEXT), 2))
         h = self._x(self.playhead)
         p.drawLine(round(h), 2, round(h), self.height() - 2)

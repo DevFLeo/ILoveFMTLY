@@ -125,10 +125,10 @@ QStatusBar QLabel {{ background: transparent; color: {C.TEXT_MUTED}; }}
 QStatusBar::item {{ border: none; }}
 QSplitter::handle {{ background: {C.BORDER}; width: 1px; }}
 QScrollBar:vertical {{ background: transparent; width: 10px; margin: 2px; }}
-QScrollBar::handle:vertical {{ background: {C.BORDER}; border-radius: {R.SM}px; min-height: 30px; }}
+QScrollBar::handle:vertical {{ background: {C.BORDER}; border-radius: {R.XS}px; min-height: 30px; }}
 QScrollBar::handle:vertical:hover {{ background: {C.ACCENT}; }}
 QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 2px; }}
-QScrollBar::handle:horizontal {{ background: {C.BORDER}; border-radius: {R.SM}px; min-width: 30px; }}
+QScrollBar::handle:horizontal {{ background: {C.BORDER}; border-radius: {R.XS}px; min-width: 30px; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
 QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 QMessageBox, QDialog, QInputDialog {{ background: {C.BG}; }}
