@@ -65,6 +65,7 @@ class Size:
     GLYPH_ICON = 20  # ícone SVG dentro do quadrado do bloco
     ICON_BUTTON = 32
     TOOLBAR_ICON = 18
+    LOGO = 56        # px, mascote no topo do hub
     THEME_GIF = 10   # px, GIF no canto inferior direito
 
 

@@ -10,12 +10,13 @@ from pathlib import Path
 from typing import Callable
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
 from ui.icons import svg_pixmap
 from ui.style import set_prop
-from ui.theme import GROUP_GLYPH, Size, Space
+from ui.theme import ASSETS, GROUP_GLYPH, Size, Space
 from ui.tools import GROUPS, OFFICE_LABEL, TOOLS, Tool, compatible
 
 COLUMNS = 4
@@ -153,8 +154,25 @@ class HubPage(QScrollArea):
         self.empty.setProperty('tone', 'muted')
         self.empty.hide()
 
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        self.logo = QLabel()
+        self.logo.setObjectName('hubLogo')
+        self.logo.setAccessibleName('ILoveFMTLY')
+        logo = QPixmap(str(ASSETS / 'logo.png'))
+        if not logo.isNull():
+            dpr = self.devicePixelRatioF()
+            logo = logo.scaled(round(Size.LOGO * dpr), round(Size.LOGO * dpr), Qt.KeepAspectRatio,
+                               Qt.SmoothTransformation)
+            logo.setDevicePixelRatio(dpr)
+            self.logo.setPixmap(logo)
+        head = QHBoxLayout()
+        head.setSpacing(Space.LG)
+        head.addWidget(self.logo, 0, Qt.AlignTop)
+        texts = QVBoxLayout()
+        texts.setSpacing(Space.XS)
+        texts.addWidget(title)
+        texts.addWidget(subtitle)
+        head.addLayout(texts, 1)
+        layout.addLayout(head)
         layout.addSpacing(Space.MD)
         layout.addWidget(self.search)
         layout.addWidget(self.empty)

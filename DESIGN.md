@@ -61,6 +61,13 @@ SVG da Lucide (ISC) em `assets/icons/`, desenhados com `ui/icons.svg_icon()` /
 Bloco do hub: quadrado de 36 px na cor de fundo do grupo (`GROUP_GLYPH`),
 ícone de 20 px na cor de frente do grupo.
 
+## Mascote
+
+A folha com dobra vermelha, olhos, bochechas e um coração (o "I love").
+`assets/logo.png` (1024 px) e `assets/app.ico` (16 a 256 px, ícone do .exe e da janela)
+saem de `scripts/mascote.py`; para mudar o desenho, edite o script e rode de novo.
+No hub aparece com 56 px (`Size.LOGO`) ao lado do título.
+
 ## Padrões dos diálogos novos
 
 - **Recorte:** fora da área = `BG` a 70 %; borda `ACCENT` 2 px; alças 8 px.

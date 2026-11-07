@@ -104,3 +104,14 @@ def test_campo_de_texto_tem_dica(qtbot, styled):
     dlg = dialogs.ParamDialog(None, tool.title, tool.params)
     qtbot.addWidget(dlg)
     assert dlg.fields['find'].placeholderText()
+
+
+# --- mascote -------------------------------------------------------------------
+def test_mascote_no_hub_e_icone_do_exe(window):
+    from ui.theme import ASSETS
+    logo = window.hub.logo.pixmap()
+    assert not logo.isNull()
+    assert round(logo.width() / logo.devicePixelRatio()) == Size.LOGO
+    from PIL import Image
+    with Image.open(ASSETS / 'app.ico') as ico:
+        assert {(16, 16), (32, 32), (256, 256)} <= set(ico.info['sizes'])

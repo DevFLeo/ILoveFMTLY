@@ -1,3 +1,5 @@
+<img src="assets/logo.png" width="96" alt="Mascote do ILoveFMTLY">
+
 # ILoveFMTLY
 
 Aplicativo desktop para Windows que ajusta documentos sensíveis **sem enviá-los a nenhum servidor**. Tudo roda na própria máquina: a aplicação bloqueia o acesso à rede ao iniciar e não tem telemetria nem verificação de atualizações.
