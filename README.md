@@ -2,9 +2,25 @@
 
 Aplicativo desktop para Windows que ajusta documentos sensíveis **sem enviá-los a nenhum servidor**. Tudo roda na própria máquina: a aplicação bloqueia o acesso à rede ao iniciar e não tem telemetria nem verificação de atualizações.
 
-Esta é a primeira entrega, focada em PDF. Próximos módulos, em ordem: Word, Excel, CSV, demais formatos e, por fim, as ferramentas de desenvolvedor (JSON, YAML, XML, encode, hash...).
+Próximos módulos, em ordem: ajustes em Word sem abrir o Word, visualizador de DOCX, Excel, CSV e, por fim, as ferramentas de desenvolvedor (JSON, YAML, XML, encode, hash...).
 
-## O que faz (PDF v1)
+## Tela inicial: o canivete suíço
+
+A tela inicial mostra todas as ferramentas como blocos, com busca. Soltar arquivos em qualquer ponto dela abre uma camada com **só os blocos compatíveis** com aqueles arquivos. Todos os blocos funcionam pelo teclado (Tab, Enter, Espaço).
+
+| Grupo | Ferramentas |
+|---|---|
+| Organizar | Juntar, Dividir, Organizar páginas, Girar, Extrair páginas, Recortar margens |
+| Otimizar | Comprimir PDF, Reparar PDF, Escala de cinza |
+| PDF para… | Word, Excel (tabelas), PowerPoint, imagem (PNG/JPG/WebP/TIFF...), GIF animado, TXT, HTML, SVG, Extrair imagens |
+| …para PDF | Word, Excel, PowerPoint, imagem, HTML/Markdown/TXT, e-book (EPUB, MOBI, FB2, XPS, CBZ, SVG) |
+| Imagens | Converter formato, Redimensionar, Comprimir, Criar GIF, GIF para quadros |
+| Editar | Numerar páginas, Marca d'água, Comparar dois PDFs |
+| Segurança | Proteger, Desbloquear, Remover metadados |
+
+As conversões de e para Word, Excel e PowerPoint usam o **Microsoft Office instalado**, numa instância invisível, só leitura, com macros desativadas e tempo limite. Sem o Office, esses blocos aparecem desativados. O resto não depende de nada além do próprio app.
+
+## Editor de PDF
 
 - **Importar** PDFs e imagens (PNG, JPG, BMP, TIFF, WebP), pelo botão ou arrastando arquivos para a janela. PDFs com senha pedem a senha; PDFs danificados passam por reparo automático.
 - **Visualizar** com miniaturas e zoom (Ctrl + roda do mouse ou "Ajustar").

@@ -76,6 +76,7 @@ QLabel#glyph {{ border-radius: {R.MD}px; font-size: {T.ICON}pt; font-weight: 700
 /* ---- camada de blocos compatíveis ---- */
 QFrame#dropLayer {{ background: rgba(24, 26, 47, 225); }}
 QFrame#layerPanel {{ background: {C.BG}; border: 1px solid {C.ACCENT}; border-radius: {R.XL}px; }}
+QScrollArea#layerScroll {{ background: transparent; border: none; }}
 QFrame#layerPanel QWidget {{ background: transparent; }}
 QFrame#layerPanel QFrame#card {{ background: {C.SURFACE}; }}
 QLabel#fileChip {{ background: {C.WINE}; color: {C.ACCENT}; border-radius: {R.MD}px;

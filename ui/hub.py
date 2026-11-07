@@ -15,7 +15,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEd
 
 from ui.style import set_prop
 from ui.theme import GROUP_GLYPH, Size, Space
-from ui.tools import GROUPS, TOOLS, Tool, compatible
+from ui.tools import GROUPS, OFFICE_LABEL, TOOLS, Tool, compatible
 
 COLUMNS = 4
 
@@ -86,16 +86,16 @@ class ToolCard(QFrame):
             super().keyPressEvent(event)
 
 
-def _availability(tool: Tool, word_ok: bool) -> tuple[bool, str]:
+def _availability(tool: Tool, apps: dict[str, bool]) -> tuple[bool, str]:
     if tool.soon:
         return False, ''
-    if tool.needs_word and not word_ok:
-        return False, 'Requer Microsoft Office instalado.'
+    if tool.needs and not apps.get(tool.needs, False):
+        return False, f'Requer Microsoft Office instalado ({OFFICE_LABEL[tool.needs]}).'
     return True, ''
 
 
 class CardGrid(QWidget):
-    def __init__(self, tools: list[Tool], word_ok: bool, on_click: Callable[[str], None]):
+    def __init__(self, tools: list[Tool], apps: dict[str, bool], on_click: Callable[[str], None]):
         super().__init__()
         self.grid = QGridLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 0)
@@ -105,7 +105,7 @@ class CardGrid(QWidget):
             self.grid.setColumnStretch(col, 1)
         self.cards: list[ToolCard] = []
         for tool in tools:
-            enabled, reason = _availability(tool, word_ok)
+            enabled, reason = _availability(tool, apps)
             card = ToolCard(tool, enabled, reason)
             card.clicked.connect(on_click)
             self.cards.append(card)
@@ -123,7 +123,7 @@ class CardGrid(QWidget):
 class HubPage(QScrollArea):
     tool_clicked = Signal(str)
 
-    def __init__(self, word_ok: bool):
+    def __init__(self, apps: dict[str, bool]):
         super().__init__()
         self.setObjectName('hub')
         self.setWidgetResizable(True)
@@ -163,7 +163,7 @@ class HubPage(QScrollArea):
                 continue
             header = QLabel(group.upper())
             header.setObjectName('groupHeader')
-            grid = CardGrid(tools, word_ok, self.tool_clicked.emit)
+            grid = CardGrid(tools, apps, self.tool_clicked.emit)
             layout.addSpacing(Space.LG)
             layout.addWidget(header)
             layout.addWidget(grid)
@@ -191,10 +191,10 @@ class DropLayer(QFrame):
 
     tool_chosen = Signal(str, list)
 
-    def __init__(self, parent: QWidget, word_ok: bool):
+    def __init__(self, parent: QWidget, apps: dict[str, bool]):
         super().__init__(parent)
         self.setObjectName('dropLayer')
-        self.word_ok = word_ok
+        self.apps = apps
         self.files: list[Path] = []
         self.cards: list[ToolCard] = []
 
@@ -225,12 +225,15 @@ class DropLayer(QFrame):
         scroll.setWidget(self.panel)
         scroll.setWidgetResizable(True)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        scroll.setStyleSheet('background: transparent;')
+        scroll.setObjectName('layerScroll')
         scroll.setMaximumWidth(1120)
 
-        outer = QVBoxLayout(self)
+        # centralizado por espaçadores (com alinhamento, o Qt encolhe a rolagem)
+        outer = QHBoxLayout(self)
         outer.setContentsMargins(Space.XXXL, Space.XXXL, Space.XXXL, Space.XXXL)
-        outer.addWidget(scroll, 1, Qt.AlignHCenter)
+        outer.addStretch(1)
+        outer.addWidget(scroll, 100)
+        outer.addStretch(1)
         self.hide()
 
     def show_for(self, files: list[Path]) -> list[Tool]:
@@ -248,7 +251,7 @@ class DropLayer(QFrame):
         if tools:
             self.hint.setText('O que você quer fazer com este arquivo?' if len(self.files) == 1
                               else 'O que você quer fazer com estes arquivos?')
-            grid = CardGrid(tools, self.word_ok, lambda tid: self.tool_chosen.emit(tid, self.files))
+            grid = CardGrid(tools, self.apps, lambda tid: self.tool_chosen.emit(tid, self.files))
             self.cards = grid.cards
             self.grid_holder.addWidget(grid)
         else:

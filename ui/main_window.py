@@ -1,5 +1,6 @@
 """Janela principal: hub de blocos + editor, ligados ao core."""
 
+from functools import partial
 from pathlib import Path
 
 from PySide6.QtCore import QFileSystemWatcher, QSize, Qt, QTimer
@@ -11,7 +12,8 @@ from PySide6.QtWidgets import (QFileDialog, QInputDialog, QLabel, QMainWindow,
 
 from core import importer, printer
 from core.document import Document
-from core.engines import mupdf, qpdf, word
+from core import convert
+from core.engines import mupdf, office, qpdf
 from core.export import export, split
 from core.history import History
 from core.ranges import parse_ranges
@@ -22,7 +24,7 @@ from ui.icons import glyph_icon
 from ui.style import set_prop
 from ui.options_panel import OptionsPanel
 from ui.thumbnails import ThumbnailGrid
-from ui.tools import BY_ID, Tool, file_filter
+from ui.tools import BY_ID, OFFICE_LABEL, Tool, accepts_count, file_filter
 from ui.theme import ASSETS, Size
 from ui.viewer import Viewer
 from ui.worker import run_in_thread
@@ -46,6 +48,12 @@ TOOL_HINTS = {
     'protect': 'Defina a senha no painel à direita e clique em Exportar PDF.',
     'unlock': 'Senha removida da cópia de trabalho. Exporte sem senha para salvar o PDF livre.',
     'metadata': 'Remoção de metadados marcada. Clique em Exportar PDF.',
+    'crop': 'Margens recortadas. Confira e clique em Exportar PDF.',
+    'grayscale': 'Páginas em tons de cinza. Confira e clique em Exportar PDF.',
+    'excel2pdf': 'Planilha convertida pelo Excel local. Ajuste e clique em Exportar PDF.',
+    'ppt2pdf': 'Apresentação convertida pelo PowerPoint local. Ajuste e clique em Exportar PDF.',
+    'web2pdf': 'Documento convertido para PDF A4. Ajuste e clique em Exportar PDF.',
+    'ebook2pdf': 'E-book convertido para PDF. Ajuste e clique em Exportar PDF.',
 }
 
 
@@ -56,7 +64,12 @@ class MainWindow(QMainWindow):
         self.ws = workspace
         self.doc = Document()
         self.history = History(self.doc)
-        self.word_ok = word.is_available() if word_ok is None else word_ok
+        if word_ok is None:
+            self.apps = {key: office.is_available(app) for key, app in
+                         (('word', office.WORD), ('excel', office.EXCEL),
+                          ('powerpoint', office.POWERPOINT))}
+        else:  # testes: liga/desliga todo o Office de uma vez
+            self.apps = dict.fromkeys(('word', 'excel', 'powerpoint'), word_ok)
         self.setWindowTitle('ILoveFMTLY')
         self.resize(1280, 820)
         self.setAcceptDrops(True)
@@ -92,13 +105,13 @@ class MainWindow(QMainWindow):
         editor_layout.addWidget(split_view, 1)
 
         # --- hub + camada ---------------------------------------------------
-        self.hub = HubPage(self.word_ok)
+        self.hub = HubPage(self.apps)
         self.hub.tool_clicked.connect(self.run_tool)
         self.stack = QStackedWidget()
         self.stack.addWidget(self.hub)
         self.stack.addWidget(self.editor)
         self.setCentralWidget(self.stack)
-        self.layer = DropLayer(self.stack, self.word_ok)
+        self.layer = DropLayer(self.stack, self.apps)
         self.layer.tool_chosen.connect(self.run_tool)
 
         # --- barra de status --------------------------------------------------
@@ -213,9 +226,12 @@ class MainWindow(QMainWindow):
             self.layer.setGeometry(self.stack.rect())
 
     # --- blocos -------------------------------------------------------------
+    def available(self, tool: Tool) -> bool:
+        return not tool.soon and (tool.needs is None or self.apps.get(tool.needs, False))
+
     def run_tool(self, tool_id: str, files: list[Path] | None = None):
         tool = BY_ID[tool_id]
-        if tool.soon or (tool.needs_word and not self.word_ok):
+        if not self.available(tool):
             return
         self.layer.close_layer()
         if files is None:
@@ -223,11 +239,15 @@ class MainWindow(QMainWindow):
             if not files:
                 return
         files = [Path(f) for f in files]
-        handler = getattr(self, f'_tool_{tool_id}', None)
-        if handler:
-            handler(files)
-        else:
+        if not accepts_count(tool, len(files)):
+            need = (f'exatamente {tool.min_files}' if tool.min_files == tool.max_files
+                    else f'pelo menos {tool.min_files}')
+            dialogs.error(self, tool.title, f'Esta ferramenta precisa de {need} arquivo(s).')
+            return
+        if tool.mode == 'editor':
             self._tool_in_editor(tool, files)
+        else:
+            self._tool_convert(tool, files)
 
     def _pick_files(self, tool: Tool) -> list[Path]:
         if tool.multi:
@@ -262,33 +282,50 @@ class MainWindow(QMainWindow):
         if preset:
             preset()
 
-    def _tool_word2pdf(self, files: list[Path]):
-        def convert():
-            return [word.to_pdf(f, self.ws.unique_path(f.stem + '.pdf')) for f in files]
+    def _tool_convert(self, tool: Tool, files: list[Path]):
+        """Ferramentas de conversão: parâmetros, destino e execução em segundo plano."""
+        params = {}
+        if tool.params:
+            params = dialogs.ParamDialog.ask(self, tool.title, tool.params)
+            if params is None:
+                return
+        sources = []
+        for f in files:  # PDFs passam pelo workspace (senha, reparo); o original não é tocado
+            if f.suffix.lower() == '.pdf':
+                copy = self._import_with_password(f)
+                if copy is None:
+                    return
+                sources.append(copy)
+            else:
+                sources.append(f)
+        fn = getattr(convert, tool.fn)
+        busy = (f'Convertendo com o {OFFICE_LABEL[tool.needs]}…' if tool.needs
+                else f'{tool.title}…')
 
-        def done(pdfs):
-            self._tool_in_editor(BY_ID['word2pdf'], pdfs)
-
-        self._run('Convertendo com o Word…', convert, on_done=done)
-
-    def _tool_pdf2word(self, files: list[Path]):
-        src = self._import_with_password(files[0])
-        if src is None:
+        if tool.mode == 'to_editor':
+            def job():
+                return [fn([src], self.ws.unique_path(orig.stem + '.pdf'), **params)[0]
+                        for src, orig in zip(sources, files)]
+            self._run(busy, job, on_done=lambda pdfs: self._tool_in_editor(tool, pdfs))
             return
-        out, _ = QFileDialog.getSaveFileName(self, 'Salvar como Word', files[0].stem + '.docx',
-                                             'Documento do Word (*.docx)')
-        if out:
-            self._run('Convertendo com o Word…', word.pdf_to_docx, src, Path(out),
-                      done_msg=lambda p: f'Documento salvo em:\n{p}')
 
-    def _tool_pdf2img(self, files: list[Path]):
-        src = self._import_with_password(files[0])
-        if src is None:
+        if tool.mode == 'file':
+            default = files[0].stem + ('_comparacao' if tool.id == 'compare' else '') + tool.ext
+            out, _ = QFileDialog.getSaveFileName(self, tool.title, default,
+                                                 f'{tool.ext[1:].upper()} (*{tool.ext})')
+            if not out:
+                return
+            target = Path(out)
+            if target.suffix.lower() != tool.ext:
+                target = target.with_name(target.name + tool.ext)
+            self._run(busy, partial(fn, sources, target, **params),
+                      done_msg=lambda res: f'Arquivo salvo em:\n{res[0]}')
             return
-        folder = QFileDialog.getExistingDirectory(self, 'Pasta para as imagens')
+
+        folder = QFileDialog.getExistingDirectory(self, f'{tool.title}: pasta de destino')
         if folder:
-            self._run('Gerando imagens…', mupdf.export_images, src, Path(folder), files[0].stem,
-                      done_msg=lambda imgs: f'{len(imgs)} imagem(ns) salvas em:\n{folder}')
+            self._run(busy, partial(fn, sources, Path(folder), **params),
+                      done_msg=lambda res: f'{len(res)} arquivo(s) salvos em:\n{folder}')
 
     # --- estado -------------------------------------------------------------
     def refresh(self, selected: list[int] | None = None):

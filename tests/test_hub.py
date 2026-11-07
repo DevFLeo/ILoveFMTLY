@@ -122,6 +122,7 @@ def test_soon_card_does_nothing(window):
 def test_pdf2img(window, qtbot, make_pdf, tmp_path, monkeypatch):
     out = tmp_path / 'imgs'
     out.mkdir()
+    monkeypatch.setattr(dialogs.ParamDialog, 'ask', classmethod(lambda cls, *a: {'fmt': 'PNG', 'dpi': 40}))
     monkeypatch.setattr(QFileDialog, 'getExistingDirectory', lambda *a, **k: str(out))
     window.run_tool('pdf2img', [make_pdf(3)])
     qtbot.waitUntil(lambda: len(list(out.glob('*.png'))) == 3 and not window.is_busy(), timeout=10000)
@@ -179,3 +180,54 @@ def test_word2pdf_and_pdf2word(window, qtbot, tmp_path, make_pdf, monkeypatch):
     window.show_hub()
     window.run_tool('pdf2word', [make_pdf(1)])
     qtbot.waitUntil(lambda: out.exists() and not window.is_busy(), timeout=60000)
+
+
+def test_param_cancel_does_nothing(window, make_pdf, monkeypatch):
+    monkeypatch.setattr(dialogs.ParamDialog, 'ask', classmethod(lambda cls, *a: None))
+    called = []
+    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **k: called.append(1) or ('', ''))
+    window.run_tool('pdf2gif', [make_pdf(2)])
+    assert not called and window.on_hub()
+
+
+def test_file_mode_pdf2gif_adds_extension(window, qtbot, make_pdf, tmp_path, monkeypatch):
+    target = tmp_path / 'animacao'  # usuário não digitou a extensão
+    monkeypatch.setattr(dialogs.ParamDialog, 'ask',
+                        classmethod(lambda cls, *a: {'dpi': 30, 'frame_ms': 200}))
+    monkeypatch.setattr(QFileDialog, 'getSaveFileName', lambda *a, **k: (str(target), ''))
+    window.run_tool('pdf2gif', [make_pdf(3)])
+    gif = tmp_path / 'animacao.gif'
+    qtbot.waitUntil(lambda: gif.exists() and not window.is_busy(), timeout=10000)
+
+
+def test_folder_mode_image_convert(window, qtbot, make_png, tmp_path, monkeypatch):
+    out = tmp_path / 'conv'
+    out.mkdir()
+    monkeypatch.setattr(dialogs.ParamDialog, 'ask',
+                        classmethod(lambda cls, *a: {'fmt': 'WebP', 'quality': 80}))
+    monkeypatch.setattr(QFileDialog, 'getExistingDirectory', lambda *a, **k: str(out))
+    window.run_tool('imgconvert', [make_png()])
+    qtbot.waitUntil(lambda: bool(list(out.glob('*.webp'))) and not window.is_busy(), timeout=10000)
+
+
+def test_to_editor_mode_markdown(window, qtbot, tmp_path):
+    md = tmp_path / 'nota.md'
+    md.write_text('# Nota\n\nTexto sigiloso.', encoding='utf-8')
+    window.run_tool('web2pdf', [md])
+    qtbot.waitUntil(lambda: len(window.doc) >= 1 and not window.is_busy(), timeout=10000)
+    assert not window.on_hub()
+
+
+def test_compare_needs_two_files(window, make_pdf, monkeypatch):
+    errors = []
+    monkeypatch.setattr(dialogs, 'error', lambda _p, title, msg: errors.append(msg))
+    window.run_tool('compare', [make_pdf(1)])
+    assert errors and 'exatamente 2' in errors[0]
+
+
+def test_layer_for_gif_and_markdown():
+    assert {'gif2frames', 'imgconvert', 'imgresize'} <= ids(compatible([Path('a.gif')]))
+    assert 'web2pdf' in ids(compatible([Path('a.md')]))
+    assert 'compare' in ids(compatible([Path('a.pdf'), Path('b.pdf')]))
+    assert 'compare' not in ids(compatible([Path('a.pdf')]))
+    assert 'img2gif' in ids(compatible([Path('a.png'), Path('b.jpg')]))

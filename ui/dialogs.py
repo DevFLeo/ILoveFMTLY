@@ -1,8 +1,8 @@
 """Diálogos pequenos: senha, metadados, mensagens."""
 
-from PySide6.QtWidgets import (QDialog, QDialogButtonBox, QHeaderView, QInputDialog,
-                               QLineEdit, QMessageBox, QTableWidget, QTableWidgetItem,
-                               QVBoxLayout)
+from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout,
+                               QHeaderView, QInputDialog, QLineEdit, QMessageBox,
+                               QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout)
 
 
 def ask_password(parent, filename: str, retry: bool) -> str | None:
@@ -18,6 +18,44 @@ def error(parent, title: str, message: str) -> None:
 
 def info(parent, title: str, message: str) -> None:
     QMessageBox.information(parent, title, message)
+
+
+class ParamDialog(QDialog):
+    """Formulário pequeno com os parâmetros de uma ferramenta (formato, DPI...)."""
+
+    def __init__(self, parent, title: str, params):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.fields = {}
+        form = QFormLayout()
+        for p in params:
+            if p.options:
+                field = QComboBox()
+                field.addItems(list(p.options))
+                field.setCurrentText(str(p.default))
+            else:
+                field = QSpinBox()
+                field.setRange(p.min, p.max)
+                field.setValue(int(p.default))
+                field.setSuffix(p.suffix)
+            self.fields[p.key] = field
+            form.addRow(p.label, field)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+                                   accepted=self.accept, rejected=self.reject)
+        buttons.button(QDialogButtonBox.Ok).setText('Continuar')
+        buttons.button(QDialogButtonBox.Cancel).setText('Cancelar')
+        layout = QVBoxLayout(self)
+        layout.addLayout(form)
+        layout.addWidget(buttons)
+
+    def values(self) -> dict:
+        return {k: (f.currentText() if isinstance(f, QComboBox) else f.value())
+                for k, f in self.fields.items()}
+
+    @classmethod
+    def ask(cls, parent, title: str, params) -> dict | None:
+        dlg = cls(parent, title, params)
+        return dlg.values() if dlg.exec() == QDialog.Accepted else None
 
 
 class MetadataDialog(QDialog):
