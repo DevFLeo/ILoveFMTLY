@@ -209,13 +209,26 @@ TOOLS: list[Tool] = [
     Tool('metadata', 'Remover metadados', 'Apague autor, software, datas e XMP.',
          'Segurança', 'eraser', PDF),
 
+    # Assinar, tarjar, formulários
+    Tool('sign', 'Assinar PDF', 'Desenhe a assinatura ou use uma imagem e carimbe na página.',
+         'Editar', 'signature', PDF, mode='dialog', dialog='sign', fn='pdf_tools.sign_pdf',
+         out_suffix='_assinado'),
+    Tool('forms', 'Preencher formulário', 'Preencha os campos de um formulário PDF.',
+         'Editar', 'text-cursor-input', PDF, mode='dialog', dialog='forms', fn='pdf_tools.fill_form',
+         out_suffix='_preenchido'),
+    Tool('redact', 'Tarja', 'Apague de verdade nomes, CPF, e-mails e outros trechos.',
+         'Segurança', 'eye-off', PDF, mode='file', fn='pdf_tools.redact', ext='.pdf',
+         out_suffix='_tarjado',
+         params=(Param('terms', 'Termos (separe com ;)', '', hint='ex.: Maria Souza; 1000,00'),
+                 Param('docs', 'Também CPF e CNPJ', 'Não', options=('Não', 'Sim')),
+                 Param('contacts', 'Também e-mails e telefones', 'Não', options=('Não', 'Sim')))),
+
     # Em breve
-    Tool('sign', 'Assinar PDF', 'Assinatura desenhada ou em imagem.', 'Em breve', 'signature', soon=True),
-    Tool('redact', 'Tarja', 'Apague de verdade trechos sensíveis.', 'Em breve', 'eye-off', soon=True),
-    Tool('edit', 'Editar PDF', 'Texto, imagens e formas sobre as páginas.', 'Em breve', 'square-pen', soon=True),
-    Tool('forms', 'Formulários', 'Preencha campos de formulários PDF.', 'Em breve', 'text-cursor-input', soon=True),
-    Tool('ocr', 'OCR', 'Torne PDFs escaneados pesquisáveis.', 'Em breve', 'scan-text', soon=True),
-    Tool('pdfa', 'PDF/A', 'Formato para arquivamento de longo prazo.', 'Em breve', 'archive', soon=True),
+    Tool('edit', 'Editar PDF', 'Texto, imagens e formas sobre as páginas.', 'Em breve', 'square-pen',
+         PDF, soon=True),
+    Tool('ocr', 'OCR', 'Torne PDFs escaneados pesquisáveis.', 'Em breve', 'scan-text', PDF, soon=True),
+    Tool('pdfa', 'PDF/A', 'Formato para arquivamento de longo prazo.', 'Em breve', 'archive', PDF,
+         soon=True),
 ]
 
 BY_ID = {t.id: t for t in TOOLS}
@@ -236,3 +249,72 @@ def compatible(paths: list[Path]) -> list[Tool]:
 def file_filter(tool: Tool) -> str:
     patterns = ' '.join(f'*{e}' for e in sorted(tool.accepts))
     return f'Arquivos aceitos ({patterns})'
+
+
+# --- tela simples: blocos grandes por tipo de arquivo ------------------------
+@dataclass(frozen=True)
+class Category:
+    id: str
+    title: str
+    desc: str
+    icon: str
+    tools: tuple[str, ...]     # ids, na ordem em que aparecem
+
+
+def _ids(pred) -> tuple[str, ...]:
+    return tuple(t.id for t in TOOLS if pred(t))
+
+
+CATEGORIES: list[Category] = [
+    Category('pdf', 'PDF', 'Juntar, dividir, comprimir, assinar, proteger…', 'file',
+             _ids(lambda t: '.pdf' in t.accepts and t.id not in ('pdf2gif',))),
+    Category('office', 'Word e Office', 'Word, Excel e PowerPoint de e para PDF.', 'file-text',
+             _ids(lambda t: t.id != 'web2pdf' and (t.group == 'Word' or t.accepts & (WORD | EXCEL | POWERPOINT)
+                  or t.id in ('pdf2word', 'pdf2excel', 'pdf2ppt')))),
+    Category('images', 'Imagens', 'Converter, recortar, comprimir, borrar…', 'image',
+             _ids(lambda t: (t.group == 'Imagens' and t.id not in ('video2gif', 'gifedit', 'gif2frames'))
+                  or t.id in ('img2pdf', 'pdf2img'))),
+    Category('video', 'Vídeo e GIF', 'Vídeo para GIF, editar e criar GIFs.', 'clapperboard',
+             ('video2gif', 'gifedit', 'img2gif', 'gif2frames', 'pdf2gif')),
+    Category('web', 'Web e e-book', 'HTML, Markdown, EPUB e outros para PDF.', 'book-open',
+             ('web2pdf', 'ebook2pdf', 'pdf2html', 'docx2text')),
+]
+CATEGORY_BY_ID = {c.id: c for c in CATEGORIES}
+
+# Cor do glifo de cada bloco grande: reaproveita a de um grupo (ui/theme.GROUP_GLYPH).
+CATEGORY_GROUP = {'pdf': 'PDF para…', 'office': 'Organizar', 'images': 'Imagens',
+                  'video': '…para PDF', 'web': 'Otimizar'}
+
+
+# --- cadastro: perfis ----------------------------------------------------------
+@dataclass(frozen=True)
+class Profile:
+    id: str
+    title: str
+    icon: str
+    goal: str                       # "Objetivo"
+    ideal: str                      # "Ideal para"
+    favorites: tuple[str, ...]      # ferramentas que aparecem primeiro
+    categories: tuple[str, ...]     # ordem dos blocos grandes
+    group: str                      # cor (via GROUP_GLYPH)
+
+
+PROFILES: list[Profile] = [
+    Profile('pessoal', 'Pessoal', 'user', 'Resolver o dia a dia rápido',
+            'Fotos, documentos pessoais e GIFs',
+            ('img2pdf', 'merge', 'compress', 'imgcompress', 'video2gif', 'pdf2img'),
+            ('pdf', 'images', 'video', 'office', 'web'), 'Organizar'),
+    Profile('estudante', 'Estudante', 'graduation-cap', 'Entregar trabalhos sem sufoco',
+            'Escola, faculdade e concursos',
+            ('merge', 'compress', 'word2pdf', 'pdf2word', 'numbers', 'web2pdf'),
+            ('pdf', 'office', 'web', 'images', 'video'), '…para PDF'),
+    Profile('instituicao', 'Instituição', 'building-2', 'Documentos oficiais e seguros',
+            'Escolas, órgãos públicos e ONGs',
+            ('sign', 'redact', 'forms', 'protect', 'numbers', 'watermark'),
+            ('pdf', 'office', 'images', 'web', 'video'), 'PDF para…'),
+    Profile('empresa', 'Empresa', 'briefcase', 'Agilizar o trabalho do escritório',
+            'Contratos, planilhas e relatórios',
+            ('sign', 'pdf2excel', 'protect', 'compress', 'docxreplace', 'compare'),
+            ('pdf', 'office', 'images', 'web', 'video'), 'Otimizar'),
+]
+PROFILE_BY_ID = {p.id: p for p in PROFILES}

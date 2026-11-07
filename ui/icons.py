@@ -26,7 +26,8 @@ def _svg(name: str, color: str) -> bytes:
     return data.replace('currentColor', color).encode('utf-8')
 
 
-def svg_pixmap(name: str, color: str = Color.ACCENT, size: int = Size.TOOLBAR_ICON) -> QPixmap:
+def svg_pixmap(name: str, color: str | None = None, size: int = Size.TOOLBAR_ICON) -> QPixmap:
+    color = color or Color.ACCENT  # resolvido na hora: o tema pode mudar antes da janela
     pix = QPixmap(size * _SCALE, size * _SCALE)
     pix.setDevicePixelRatio(_SCALE)
     pix.fill(Qt.transparent)
@@ -38,9 +39,13 @@ def svg_pixmap(name: str, color: str = Color.ACCENT, size: int = Size.TOOLBAR_IC
     return pix
 
 
+def svg_icon(name: str, color: str | None = None, size: int = Size.TOOLBAR_ICON) -> QIcon:
+    return _svg_icon(name, color or Color.ACCENT, Color.TEXT_DISABLED, size)
+
+
 @lru_cache(maxsize=None)
-def svg_icon(name: str, color: str = Color.ACCENT, size: int = Size.TOOLBAR_ICON) -> QIcon:
+def _svg_icon(name: str, color: str, disabled: str, size: int) -> QIcon:
     icon = QIcon()
     icon.addPixmap(svg_pixmap(name, color, size), QIcon.Normal)
-    icon.addPixmap(svg_pixmap(name, Color.TEXT_DISABLED, size), QIcon.Disabled)
+    icon.addPixmap(svg_pixmap(name, disabled, size), QIcon.Disabled)
     return icon

@@ -11,6 +11,7 @@ from PySide6.QtGui import QDragEnterEvent, QDropEvent  # noqa: E402
 from PySide6.QtWidgets import QApplication, QFileDialog, QInputDialog  # noqa: E402
 
 from core.engines import word  # noqa: E402
+from core.settings import Settings  # noqa: E402
 from core.workspace import Workspace  # noqa: E402
 from ui import dialogs  # noqa: E402
 from ui.main_window import MainWindow  # noqa: E402
@@ -21,7 +22,8 @@ from ui.tools import TOOLS, compatible  # noqa: E402
 def window(qtbot, tmp_path, monkeypatch):
     monkeypatch.setattr(dialogs, 'error', lambda *_: pytest.fail(f'erro inesperado: {_}'))
     monkeypatch.setattr(dialogs, 'info', lambda *_: None)
-    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=word.is_available())
+    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=word.is_available(),
+                   settings=Settings(mode='detailed'))
     qtbot.addWidget(w)
     w.show()
     return w
@@ -46,7 +48,7 @@ def test_compatible_by_format():
     assert {'word2pdf', 'docxclean', 'docxreplace', 'docx2text'} == ids(compatible([Path('a.docx')]))
     pdf = ids(compatible([Path('a.pdf')]))
     assert {'merge', 'split', 'numbers', 'pdf2word', 'protect'} <= pdf
-    assert 'word2pdf' not in pdf and 'sign' not in pdf  # "em breve" nunca aparece
+    assert 'word2pdf' not in pdf and 'ocr' not in pdf  # "em breve" nunca aparece
     assert ids(compatible([Path('a.pdf'), Path('b.png')])) == {'merge', 'organize'}
     assert ids(compatible([Path('a.pdf'), Path('b.docx')])) == set()
     assert ids(compatible([Path('a.xyz')])) == set()
@@ -115,7 +117,7 @@ def test_card_click_opens_file_picker(window, make_pdf, monkeypatch):
 
 
 def test_soon_card_does_nothing(window):
-    window.run_tool('sign')
+    window.run_tool('ocr')
     assert window.on_hub()
 
 

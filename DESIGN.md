@@ -22,11 +22,21 @@ Embutidas em `assets/fonts/` (OFL, ver `OFL.txt`) e registradas em
 
 Escala (pt): 9 legenda · 10 corpo · 11 título de cartão · 20 título de tela.
 
-Proibido: Inter, Roboto, Segoe UI ou qualquer fonte do sistema como fonte de texto.
+Padrão: IBM Plex Sans. A pessoa pode trocar a fonte do texto em Configurações
+(`FONTS` em `ui/theme.py`: Plex Sans, Plex Mono, Segoe UI, Arial, Verdana, Georgia);
+o código nunca escolhe outra fonte por conta própria.
+
+Tamanho do texto (Configurações): Pequeno 0,9 · Normal 1 · Grande 1,15 · Muito grande 1,3
+sobre a escala acima (`TEXT_SIZES`). As alturas dos blocos crescem junto.
 
 ## Cores
 
-Só a paleta abaixo e os derivados já definidos em `Color`. Sem gradiente. Sem cor nova.
+Cada tema em `THEMES` (`ui/theme.py`) define todos os tokens de `Color`; trocar ou
+criar tema é editar só esse dicionário (`test_themes_complete` cobra as chaves).
+Temas: **Noite** (padrão, tabela abaixo), **Claro** e **Alto contraste**. Tema, fonte e
+tamanho valem ao reabrir o app (`apply_appearance()` roda antes da janela existir).
+Sem gradiente. Sem cor fora do tema. Exceção: `INK`/`PAPER` da assinatura, que vão para
+o PDF e não mudam com o tema.
 
 | Token | Cor | Uso |
 |---|---|---|
@@ -39,6 +49,11 @@ Só a paleta abaixo e os derivados já definidos em `Color`. Sem gradiente. Sem 
 | `TEXT` / `TEXT_MUTED` | `#F3F4F8` / `#AEB4C8` | texto principal / secundário |
 
 Nenhum hex fora de `ui/theme.py` (teste `test_no_hex_outside_theme`).
+
+## Raios
+
+`Radius`: XS 3 (scrollbar, trilho) · SM 5 (checkbox) · MD 12 (botões, campos, glifo) ·
+LG 18 (cartões, busca) · XL 24 (painel da camada, blocos grandes). Nada de raio solto no código.
 
 ## Hierarquia
 
@@ -68,6 +83,21 @@ A folha com dobra vermelha, olhos, bochechas e um coração (o "I love").
 saem de `scripts/mascote.py`; para mudar o desenho, edite o script e rode de novo.
 No hub aparece com 56 px (`Size.LOGO`) ao lado do título.
 
+## Telas iniciais
+
+- **Simples** (padrão): saudação "Olá, {nome}!", favoritas do perfil (`SUAS FERRAMENTAS`)
+  e um bloco grande por tipo de arquivo (`CATEGORIES` em `ui/tools.py`): círculo de
+  56 px com ícone de 28 px, título 15 pt, contagem em Mono. Clicar abre a página da
+  categoria (só aquelas ferramentas, com busca e "Voltar").
+- **Detalhado**: todas as ferramentas por grupo, com busca.
+- O botão "Trocar para detalhado / simples" grava a escolha no `config.json`.
+
+## Cadastro
+
+"Como devo te chamar?" + um cartão por perfil (`PROFILES`): faixa de 4 px na cor do
+perfil, círculo com ícone, título, *Objetivo*, *Ideal para*, *Já vem com*. Selecionado =
+borda `ACCENT` 2 px. Aparece na primeira vez; depois, em Configurações.
+
 ## Padrões dos diálogos novos
 
 - **Recorte:** fora da área = `BG` a 70 %; borda `ACCENT` 2 px; alças 8 px.
@@ -76,6 +106,10 @@ No hub aparece com 56 px (`Size.LOGO`) ao lado do título.
   Linha de estado em Mono:
   `TRECHO 00:12.40 → 00:18.00 · 5,6 s · 56 quadros · ≈ 3,1 MB`.
   Ação única: **Gerar GIF**.
+- **Assinar PDF:** área de desenho em `PAPER` com traço `INK` de 3 px; página
+  (0 = última), posição e tamanho em % da largura. Ação única: **Assinar**.
+- **Preencher formulário:** um campo por linha, contagem em Mono, opção "Deixar fixo".
+  Ação única: **Preencher**.
 
 ## Texto
 

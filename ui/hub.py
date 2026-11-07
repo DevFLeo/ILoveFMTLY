@@ -1,8 +1,13 @@
-"""Tela inicial: grade de blocos de ferramentas, busca e a camada de compatíveis.
+"""Telas iniciais: tela simples (blocos grandes), página de categoria e hub detalhado.
 
-Ao soltar arquivos no hub, a DropLayer sobe por cima mostrando só os blocos
-que aceitam aqueles arquivos. Os blocos funcionam com teclado: Tab navega,
-Enter ou Espaço abrem.
+- SimpleHome: um bloco grande por tipo de arquivo (PDF, Imagens...), as
+  ferramentas favoritas do perfil e o botão "Trocar para detalhado".
+- HubPage: grade de blocos com busca. Sem `tools`, mostra todas (modo
+  detalhado); com `tools`, vira a página de uma categoria, com "Voltar".
+- DropLayer: ao soltar arquivos, sobe por cima mostrando só os blocos que
+  aceitam aqueles arquivos.
+
+Os blocos funcionam com teclado: Tab navega, Enter ou Espaço abrem.
 """
 
 import unicodedata
@@ -14,12 +19,14 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
-from ui.icons import svg_pixmap
+from ui.icons import svg_icon, svg_pixmap
 from ui.style import set_prop
-from ui.theme import ASSETS, GROUP_GLYPH, Size, Space
-from ui.tools import GROUPS, OFFICE_LABEL, TOOLS, Tool, compatible
+from ui.theme import ASSETS, Size, Space, glyph_for
+from ui.tools import (BY_ID, CATEGORIES, CATEGORY_BY_ID, CATEGORY_GROUP, GROUPS, OFFICE_LABEL,
+                      PROFILE_BY_ID, TOOLS, Category, Tool, compatible)
 
 COLUMNS = 4
+HOME_COLUMNS = 3
 
 
 def _fold(text: str) -> str:
@@ -28,48 +35,22 @@ def _fold(text: str) -> str:
                    if unicodedata.category(c) != 'Mn')
 
 
-class ToolCard(QFrame):
+class Clickable(QFrame):
+    """Bloco clicável por mouse e teclado. Emite `clicked(key)`."""
+
     clicked = Signal(str)
 
-    def __init__(self, tool: Tool, enabled: bool, reason: str = ''):
+    def __init__(self, key: str, enabled: bool = True):
         super().__init__()
-        self.tool = tool
+        self.key = key
         self._enabled = enabled
-        self.setObjectName('card')
         self.setProperty('disabled', not enabled)
         self.setCursor(Qt.PointingHandCursor if enabled else Qt.ArrowCursor)
         self.setFocusPolicy(Qt.StrongFocus if enabled else Qt.NoFocus)
-        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
-        self.setFixedHeight(Size.CARD_HEIGHT)
-        self.setAccessibleName(tool.title)
-        self.setAccessibleDescription(reason or tool.desc)
-
-        bg, fg = GROUP_GLYPH.get(tool.group, GROUP_GLYPH['Em breve'])
-        glyph = QLabel(alignment=Qt.AlignCenter)
-        glyph.setObjectName('glyph')
-        glyph.setFixedSize(Size.GLYPH, Size.GLYPH)
-        glyph.setPixmap(svg_pixmap(tool.icon, fg, Size.GLYPH_ICON))
-        glyph.setStyleSheet(f'background:{bg};')  # cor por grupo vem dos tokens
-
-        title = QLabel(tool.title)
-        title.setObjectName('cardTitle')
-        desc = QLabel(reason or tool.desc)
-        desc.setObjectName('cardDesc')
-        desc.setWordWrap(True)
-        desc.setAlignment(Qt.AlignTop | Qt.AlignLeft)
-
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(Space.LG, Space.MD, Space.LG, Space.MD)
-        layout.setSpacing(Space.SM)
-        layout.addWidget(glyph)
-        layout.addWidget(title)
-        layout.addWidget(desc, 1)
-        self.setToolTip(reason or tool.desc)
-        self.search_text = _fold(f'{tool.title} {tool.desc} {tool.group} {" ".join(tool.accepts)}')
 
     def activate(self):
         if self._enabled:
-            self.clicked.emit(self.tool.id)
+            self.clicked.emit(self.key)
 
     def mousePressEvent(self, event):
         if self._enabled and event.button() == Qt.LeftButton:
@@ -87,6 +68,79 @@ class ToolCard(QFrame):
             self.activate()
         else:
             super().keyPressEvent(event)
+
+
+def make_glyph(icon: str, group: str, box: int, size: int, name: str) -> QLabel:
+    bg, fg = glyph_for(group)
+    glyph = QLabel(alignment=Qt.AlignCenter)
+    glyph.setObjectName(name)
+    glyph.setFixedSize(box, box)
+    glyph.setPixmap(svg_pixmap(icon, fg, size))
+    glyph.setStyleSheet(f'background:{bg};')  # cor por grupo vem dos tokens
+    return glyph
+
+
+class ToolCard(Clickable):
+    def __init__(self, tool: Tool, enabled: bool, reason: str = ''):
+        super().__init__(tool.id, enabled)
+        self.tool = tool
+        self.setObjectName('card')
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setFixedHeight(Size.CARD_HEIGHT)
+        self.setAccessibleName(tool.title)
+        self.setAccessibleDescription(reason or tool.desc)
+
+        glyph = make_glyph(tool.icon, tool.group, Size.GLYPH, Size.GLYPH_ICON, 'glyph')
+        title = QLabel(tool.title)
+        title.setObjectName('cardTitle')
+        desc = QLabel(reason or tool.desc)
+        desc.setObjectName('cardDesc')
+        desc.setWordWrap(True)
+        desc.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(Space.LG, Space.MD, Space.LG, Space.MD)
+        layout.setSpacing(Space.SM)
+        layout.addWidget(glyph)
+        layout.addWidget(title)
+        layout.addWidget(desc, 1)
+        self.setToolTip(reason or tool.desc)
+        self.search_text = _fold(f'{tool.title} {tool.desc} {tool.group} {" ".join(tool.accepts)}')
+
+
+class HomeCard(Clickable):
+    """Bloco grande da tela simples: círculo com ícone, título, resumo e contagem."""
+
+    def __init__(self, category: Category, count: int):
+        super().__init__(category.id)
+        self.category = category
+        self.setObjectName('homeCard')
+        self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        self.setFixedHeight(Size.HOME_CARD_HEIGHT)
+        self.setAccessibleName(category.title)
+        self.setAccessibleDescription(category.desc)
+
+        glyph = make_glyph(category.icon, CATEGORY_GROUP[category.id], Size.HOME_GLYPH,
+                           Size.HOME_GLYPH_ICON, 'homeGlyph')
+        title = QLabel(category.title)
+        title.setObjectName('homeTitle')
+        desc = QLabel(category.desc)
+        desc.setObjectName('cardDesc')
+        desc.setWordWrap(True)
+        self.count = QLabel(f'{count} FERRAMENTAS')
+        self.count.setObjectName('homeCount')
+
+        texts = QVBoxLayout()
+        texts.setSpacing(Space.XS)
+        texts.addWidget(title)
+        texts.addWidget(desc)
+        texts.addStretch(1)
+        texts.addWidget(self.count)
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(Space.XL, Space.XL, Space.XL, Space.XL)
+        layout.setSpacing(Space.LG)
+        layout.addWidget(glyph, 0, Qt.AlignTop)
+        layout.addLayout(texts, 1)
 
 
 def _availability(tool: Tool, apps: dict[str, bool]) -> tuple[bool, str]:
@@ -123,29 +177,105 @@ class CardGrid(QWidget):
             card.show()
 
 
-class HubPage(QScrollArea):
-    tool_clicked = Signal(str)
+def _logo() -> QLabel:
+    label = QLabel()
+    label.setObjectName('hubLogo')
+    label.setAccessibleName('ILoveFMTLY')
+    logo = QPixmap(str(ASSETS / 'logo.png'))
+    if not logo.isNull():
+        dpr = label.devicePixelRatioF()
+        logo = logo.scaled(round(Size.LOGO * dpr), round(Size.LOGO * dpr), Qt.KeepAspectRatio,
+                           Qt.SmoothTransformation)
+        logo.setDevicePixelRatio(dpr)
+        label.setPixmap(logo)
+    return label
 
-    def __init__(self, apps: dict[str, bool]):
+
+def ghost_button(text: str, icon: str, slot, name: str = '') -> QPushButton:
+    btn = QPushButton(svg_icon(icon), text)
+    btn.setProperty('variant', 'ghost')
+    btn.setCursor(Qt.PointingHandCursor)
+    if name:
+        btn.setObjectName(name)
+    btn.clicked.connect(slot)
+    return btn
+
+
+class _Page(QScrollArea):
+    """Base das telas iniciais: rolagem, margens e cabeçalho com mascote."""
+
+    settings_clicked = Signal()
+
+    def __init__(self):
         super().__init__()
         self.setObjectName('hub')
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self.cards: list[ToolCard] = []
-        self.sections: list[tuple[QLabel, CardGrid]] = []
-
         body = QWidget()
         body.setObjectName('hubBody')
-        layout = QVBoxLayout(body)
-        layout.setContentsMargins(Space.XXXL, Space.XXL, Space.XXXL, Space.XXL)
-        layout.setSpacing(Space.SM)
+        self.body = QVBoxLayout(body)
+        self.body.setContentsMargins(Space.XXXL, Space.XXL, Space.XXXL, Space.XXL)
+        self.body.setSpacing(Space.SM)
+        self.setWidget(body)
 
-        title = QLabel('Ferramentas para seus documentos')
-        title.setObjectName('hubTitle')
-        subtitle = QLabel('Tudo roda neste computador. Solte arquivos em qualquer lugar '
-                          'desta tela para ver o que dá para fazer com eles.')
-        subtitle.setObjectName('hubSubtitle')
-        subtitle.setWordWrap(True)
+    def _header(self, title: str, subtitle: str, actions: list[QWidget], logo: bool = True):
+        self.title = QLabel(title)
+        self.title.setObjectName('hubTitle')
+        self.subtitle = QLabel(subtitle)
+        self.subtitle.setObjectName('hubSubtitle')
+        self.subtitle.setWordWrap(True)
+        head = QHBoxLayout()
+        head.setSpacing(Space.LG)
+        if logo:
+            self.logo = _logo()
+            head.addWidget(self.logo, 0, Qt.AlignTop)
+        texts = QVBoxLayout()
+        texts.setSpacing(Space.XS)
+        texts.addWidget(self.title)
+        texts.addWidget(self.subtitle)
+        head.addLayout(texts, 1)
+        for w in actions:
+            head.addWidget(w, 0, Qt.AlignTop)
+        self.body.addLayout(head)
+
+
+class HubPage(_Page):
+    """Grade de blocos com busca. Sem `tools`: todas as ferramentas (modo detalhado).
+    Com `tools`: página de uma categoria, com botão "Voltar"."""
+
+    tool_clicked = Signal(str)
+    mode_clicked = Signal()
+    back_clicked = Signal()
+
+    def __init__(self, apps: dict[str, bool], tools: list[Tool] | None = None, title: str = '',
+                 subtitle: str = ''):
+        super().__init__()
+        self.cards: list[ToolCard] = []
+        self.sections: list[tuple[QLabel, CardGrid]] = []
+        self.is_category = tools is not None
+        tools = TOOLS if tools is None else tools
+
+        if self.is_category:
+            back = ghost_button('Voltar', 'arrow-left', self.back_clicked.emit, 'backButton')
+            back.setShortcut('Alt+Left')
+            back.setToolTip('Voltar para o início (Alt+←)')
+            row = QHBoxLayout()
+            row.addWidget(back)
+            row.addStretch(1)
+            self.body.addLayout(row)
+            self.body.addSpacing(Space.SM)
+            actions = []
+        else:
+            self.toggle = ghost_button('Trocar para simples', 'arrow-left-right',
+                                       self.mode_clicked.emit, 'modeToggle')
+            self.toggle.setToolTip('Voltar para os blocos grandes por tipo de arquivo.')
+            actions = [self.toggle,
+                       ghost_button('Configurações', 'settings', self.settings_clicked.emit)]
+        self._header(title or 'Ferramentas para seus documentos',
+                     subtitle or 'Tudo roda neste computador. Solte arquivos em qualquer lugar '
+                                 'desta tela para ver o que dá para fazer com eles.',
+                     actions, logo=not self.is_category)
+
         self.search = QLineEdit(placeholderText='Buscar ferramenta…  (ex.: gif, word, senha, comprimir)')
         self.search.setObjectName('hubSearch')
         self.search.setClearButtonEnabled(True)
@@ -153,44 +283,23 @@ class HubPage(QScrollArea):
         self.empty = QLabel('Nenhuma ferramenta encontrada.')
         self.empty.setProperty('tone', 'muted')
         self.empty.hide()
-
-        self.logo = QLabel()
-        self.logo.setObjectName('hubLogo')
-        self.logo.setAccessibleName('ILoveFMTLY')
-        logo = QPixmap(str(ASSETS / 'logo.png'))
-        if not logo.isNull():
-            dpr = self.devicePixelRatioF()
-            logo = logo.scaled(round(Size.LOGO * dpr), round(Size.LOGO * dpr), Qt.KeepAspectRatio,
-                               Qt.SmoothTransformation)
-            logo.setDevicePixelRatio(dpr)
-            self.logo.setPixmap(logo)
-        head = QHBoxLayout()
-        head.setSpacing(Space.LG)
-        head.addWidget(self.logo, 0, Qt.AlignTop)
-        texts = QVBoxLayout()
-        texts.setSpacing(Space.XS)
-        texts.addWidget(title)
-        texts.addWidget(subtitle)
-        head.addLayout(texts, 1)
-        layout.addLayout(head)
-        layout.addSpacing(Space.MD)
-        layout.addWidget(self.search)
-        layout.addWidget(self.empty)
+        self.body.addSpacing(Space.MD)
+        self.body.addWidget(self.search)
+        self.body.addWidget(self.empty)
 
         for group in GROUPS:
-            tools = [t for t in TOOLS if t.group == group]
-            if not tools:
+            in_group = [t for t in tools if t.group == group]
+            if not in_group:
                 continue
             header = QLabel(group.upper())
             header.setObjectName('groupHeader')
-            grid = CardGrid(tools, apps, self.tool_clicked.emit)
-            layout.addSpacing(Space.LG)
-            layout.addWidget(header)
-            layout.addWidget(grid)
+            grid = CardGrid(in_group, apps, self.tool_clicked.emit)
+            self.body.addSpacing(Space.LG)
+            self.body.addWidget(header)
+            self.body.addWidget(grid)
             self.cards.extend(grid.cards)
             self.sections.append((header, grid))
-        layout.addStretch(1)
-        self.setWidget(body)
+        self.body.addStretch(1)
 
     def filter(self, text: str) -> int:
         """Mostra só os blocos que casam com a busca. Devolve quantos ficaram."""
@@ -204,6 +313,70 @@ class HubPage(QScrollArea):
             total += len(visible)
         self.empty.setVisible(total == 0)
         return total
+
+
+def category_page(apps: dict[str, bool], category_id: str) -> HubPage:
+    cat = CATEGORY_BY_ID[category_id]
+    return HubPage(apps, [BY_ID[i] for i in cat.tools], cat.title,
+                   f'{cat.desc} Escolha uma ferramenta ou solte arquivos aqui.')
+
+
+class SimpleHome(_Page):
+    """Tela simples: blocos grandes por tipo de arquivo + favoritas do perfil."""
+
+    category_clicked = Signal(str)
+    tool_clicked = Signal(str)
+    mode_clicked = Signal()
+
+    def __init__(self, apps: dict[str, bool], name: str = '', profile: str = ''):
+        super().__init__()
+        prof = PROFILE_BY_ID.get(profile)
+        self._header(f'Olá, {name}!' if name else 'Olá!',
+                     'O que você quer fazer hoje? Escolha um tipo de arquivo, '
+                     'ou solte arquivos em qualquer lugar desta tela.',
+                     [ghost_button('Configurações', 'settings', self.settings_clicked.emit)])
+
+        self.favorites: CardGrid | None = None
+        if prof:
+            header = QLabel(f'SUAS FERRAMENTAS · {prof.title.upper()}')
+            header.setObjectName('groupHeader')
+            self.favorites = CardGrid([BY_ID[i] for i in prof.favorites if i in BY_ID], apps,
+                                      self.tool_clicked.emit)
+            self.body.addSpacing(Space.XL)
+            self.body.addWidget(header)
+            self.body.addWidget(self.favorites)
+
+        order = list(prof.categories) if prof else []
+        order += [c.id for c in CATEGORIES if c.id not in order]
+        header = QLabel('O QUE VOCÊ QUER USAR?')
+        header.setObjectName('groupHeader')
+        grid_box = QWidget()
+        grid = QGridLayout(grid_box)
+        grid.setContentsMargins(0, 0, 0, 0)
+        grid.setSpacing(Space.LG)
+        for col in range(HOME_COLUMNS):
+            grid.setColumnStretch(col, 1)
+        self.home_cards: list[HomeCard] = []
+        for i, cid in enumerate(order):
+            cat = CATEGORY_BY_ID[cid]
+            card = HomeCard(cat, sum(1 for t in cat.tools if not BY_ID[t].soon))
+            card.clicked.connect(self.category_clicked.emit)
+            grid.addWidget(card, i // HOME_COLUMNS, i % HOME_COLUMNS)
+            self.home_cards.append(card)
+        self.body.addSpacing(Space.XL)
+        self.body.addWidget(header)
+        self.body.addWidget(grid_box)
+        self.body.addStretch(1)
+
+        self.toggle = ghost_button('Trocar para detalhado', 'arrow-left-right', self.mode_clicked.emit,
+                                   'modeToggle')
+        self.toggle.setToolTip('Ver todas as ferramentas numa tela só, com busca.')
+        row = QHBoxLayout()
+        row.addStretch(1)
+        row.addWidget(self.toggle)
+        row.addStretch(1)
+        self.body.addSpacing(Space.XL)
+        self.body.addLayout(row)
 
 
 class DropLayer(QFrame):

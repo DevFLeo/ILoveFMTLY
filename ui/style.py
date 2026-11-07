@@ -10,11 +10,18 @@ Convenções:
 from PySide6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PySide6.QtWidgets import QApplication, QWidget
 
-from ui.theme import ASSETS, Color as C, Radius as R, Space as S, Type as T
+from ui.theme import ASSETS, Color as C, Radius as R, Size, Space as S, Type as T
 
 CHECK_SVG = (ASSETS / 'check.svg').as_posix()
 
-QSS = f"""
+def _rgba(hex_color: str, alpha: int) -> str:
+    c = QColor(hex_color)
+    return f'rgba({c.red()}, {c.green()}, {c.blue()}, {alpha})'
+
+
+def build_qss() -> str:
+    """QSS com os tokens do tema ativo (ver ui/theme.apply_appearance)."""
+    return f"""
 QMainWindow, QWidget {{ background: {C.BG}; color: {C.TEXT}; font-size: {T.BODY}pt;
                       font-family: "{T.SANS}"; }}
 QLabel[role="mono"] {{ font-family: "{T.MONO}"; background: transparent; }}
@@ -78,13 +85,39 @@ QFrame#card[disabled="true"] QLabel#cardDesc {{ color: {C.TEXT_DISABLED}; }}
 QLabel#glyph {{ border-radius: {R.MD}px; }}
 
 /* ---- camada de blocos compatíveis ---- */
-QFrame#dropLayer {{ background: rgba(24, 26, 47, 225); }}
+QFrame#dropLayer {{ background: {_rgba(C.BG, 225)}; }}
 QFrame#layerPanel {{ background: {C.BG}; border: 1px solid {C.ACCENT}; border-radius: {R.XL}px; }}
 QScrollArea#layerScroll {{ background: transparent; border: none; }}
 QFrame#layerPanel QWidget {{ background: transparent; }}
 QFrame#layerPanel QFrame#card {{ background: {C.SURFACE}; }}
 QLabel#fileChip {{ background: {C.WINE}; color: {C.ACCENT}; border-radius: {R.MD}px;
                    padding: {S.SM}px {S.LG}px; font-weight: 600; }}
+
+/* ---- tela simples (blocos grandes) ---- */
+QFrame#homeCard {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.XL}px; }}
+QFrame#homeCard:hover {{ border-color: {C.ACCENT}; background: {C.SURFACE_HOVER}; }}
+QFrame#homeCard:focus {{ border: 2px solid {C.ACCENT}; background: {C.SURFACE_HOVER}; }}
+QFrame#homeCard[pressed="true"] {{ background: {C.WINE}; }}
+QFrame#homeCard QLabel {{ background: transparent; }}
+QLabel#homeTitle {{ font-size: {T.HEADING}pt; font-weight: 600; }}
+QLabel#homeGlyph {{ border-radius: {Size.HOME_GLYPH // 2}px; }}
+QLabel#homeCount {{ color: {C.TEXT_MUTED}; font-family: "{T.MONO}"; font-size: {T.CAPTION}pt; }}
+QPushButton#modeToggle {{ border-radius: {R.LG}px; padding: {S.SM}px {S.LG}px; }}
+
+/* ---- cadastro (cartões de perfil) ---- */
+QFrame#profileCard {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.LG}px; }}
+QFrame#profileCard:hover {{ border-color: {C.ACCENT}; }}
+QFrame#profileCard:focus {{ border: 2px solid {C.ACCENT}; }}
+QFrame#profileCard[selected="true"] {{ border: 2px solid {C.ACCENT}; background: {C.SURFACE_HOVER}; }}
+QFrame#profileCard QLabel {{ background: transparent; }}
+QLabel#profileTitle {{ font-size: {T.HEADING}pt; font-weight: 700; }}
+QLabel#profileLabel {{ font-weight: 600; }}
+QLabel#profileText {{ color: {C.TEXT_MUTED}; font-size: {T.CAPTION}pt; }}
+QLabel#profileGlyph {{ border-radius: {Size.HOME_GLYPH // 2}px; }}
+QFrame#profileBar {{ border-radius: {Size.PROFILE_BAR // 2}px; }}
+
+/* ---- assinatura ---- */
+QWidget#signPad {{ background: {C.SURFACE}; border: 1px dashed {C.BORDER}; border-radius: {R.LG}px; }}
 
 /* ---- editor ---- */
 QLabel#hintBar {{ background: {C.WINE}; color: {C.ACCENT}; padding: {S.SM}px {S.LG}px; }}
@@ -172,4 +205,4 @@ def apply_style(app: QApplication) -> None:
                         (QPalette.ToolTipBase, C.SURFACE), (QPalette.ToolTipText, C.TEXT)):
         palette.setColor(role, QColor(color))
     app.setPalette(palette)
-    app.setStyleSheet(QSS)
+    app.setStyleSheet(build_qss())

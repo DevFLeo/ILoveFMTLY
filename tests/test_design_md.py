@@ -10,6 +10,7 @@ import pytest  # noqa: E402
 from PySide6.QtGui import QFontInfo  # noqa: E402
 from PySide6.QtWidgets import QGroupBox, QLabel, QPushButton  # noqa: E402
 
+from core.settings import Settings  # noqa: E402
 from core.workspace import Workspace  # noqa: E402
 from ui import dialogs  # noqa: E402
 from ui.main_window import MainWindow  # noqa: E402
@@ -28,7 +29,8 @@ def styled(qapp):
 
 @pytest.fixture
 def window(qtbot, tmp_path, styled):
-    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False)
+    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False,
+                   settings=Settings(mode='detailed'))
     w.resize(1280, 820)
     qtbot.addWidget(w)
     w.show()

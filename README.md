@@ -8,7 +8,16 @@ Próximos módulos, em ordem: ajustes em Word sem abrir o Word, visualizador de 
 
 ## Tela inicial: o canivete suíço
 
-A tela inicial mostra todas as ferramentas como blocos, com busca. Soltar arquivos em qualquer ponto dela abre uma camada com **só os blocos compatíveis** com aqueles arquivos. Todos os blocos funcionam pelo teclado (Tab, Enter, Espaço).
+Na primeira vez, o app pergunta **como devo te chamar** e o **perfil** (Pessoal, Estudante, Instituição, Empresa). O perfil define as ferramentas que aparecem primeiro.
+
+A tela inicial tem dois modos, com o botão **Trocar para detalhado / simples**:
+
+- **Simples** (padrão): blocos grandes por tipo de arquivo (PDF, Word e Office, Imagens, Vídeo e GIF, Web e e-book). Clicar num bloco abre uma página só com as ferramentas daquele tipo.
+- **Detalhado**: todas as ferramentas como blocos, por grupo, com busca.
+
+Em **Configurações**: tema (Noite, Claro, Alto contraste), fonte, tamanho do texto, modo inicial e cadastro. Tudo fica num `config.json` pequeno, ao lado do `.exe` (ou na raiz do projeto, rodando pelo Python). Tema, fonte e tamanho valem ao reabrir o app.
+
+Soltar arquivos em qualquer ponto dela abre uma camada com **só os blocos compatíveis** com aqueles arquivos. Todos os blocos funcionam pelo teclado (Tab, Enter, Espaço).
 
 | Grupo | Ferramentas |
 |---|---|
@@ -18,8 +27,9 @@ A tela inicial mostra todas as ferramentas como blocos, com busca. Soltar arquiv
 | …para PDF | Word, Excel, PowerPoint, imagem, HTML/Markdown/TXT, e-book (EPUB, MOBI, FB2, XPS, CBZ, SVG) |
 | Word (sem Office) | Limpar DOCX (autor, comentários, revisões), Localizar e substituir, Juntar DOCX, DOCX para TXT/Markdown/HTML |
 | Imagens | Converter formato, Redimensionar, Comprimir, Recortar, Girar/espelhar, Remover EXIF/GPS, Marca d'água (texto ou logo), Borrar área, Criar GIF, Editar GIF (velocidade, trecho, largura, inverter, WebP), Vídeo para GIF/WebP (prévia e trecho), GIF para quadros |
-| Editar | Numerar páginas, Marca d'água, Comparar dois PDFs |
-| Segurança | Proteger, Desbloquear, Remover metadados |
+| Editar | Numerar páginas, Marca d'água, Comparar dois PDFs, Assinar PDF (desenho ou imagem), Preencher formulário |
+| Segurança | Proteger, Desbloquear, Remover metadados, Tarja (termos, CPF/CNPJ, e-mails e telefones; apaga de verdade) |
+| Em breve | Editar PDF, OCR, PDF/A |
 
 As conversões de e para Word, Excel e PowerPoint usam o **Microsoft Office instalado**, numa instância invisível, só leitura, com macros desativadas e tempo limite. Sem o Office, esses blocos aparecem desativados. O resto não depende de nada além do próprio app.
 
