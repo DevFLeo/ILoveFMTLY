@@ -22,7 +22,9 @@ from ui.tools import BY_ID, CATEGORIES, PROFILES, TOOLS  # noqa: E402
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings.load(tmp_path / 'config.json')
+    s = Settings.load(tmp_path / 'config.json')
+    s.layout = 'blocks'  # estes testes cobrem a tela de blocos; a barra lateral está em test_side_home.py
+    return s
 
 
 @pytest.fixture
@@ -85,7 +87,7 @@ def test_home_button_returns_to_chosen_mode(window, make_pdf):
 
 
 def test_profile_favorites_and_greeting(qtbot, tmp_path):
-    s = Settings(name='Ana', profile='instituicao')
+    s = Settings(name='Ana', profile='instituicao', layout='blocks')
     w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False, settings=s)
     qtbot.addWidget(w)
     assert w.home.title.text() == 'Olá, Ana!'

@@ -95,6 +95,10 @@ e nos grupos Word, Imagens, CSV e de dev (`GROUP_GLYPH`).
   e um bloco grande por tipo de arquivo (`CATEGORIES` em `ui/tools.py`): círculo de
   56 px com ícone de 28 px, título 15 pt, contagem em Mono. Clicar abre a página da
   categoria (só aquelas ferramentas, com busca e "Voltar").
+- **Simples com barra lateral** (padrão, `layout="sidebar"`): barra lateral na cor `ACCENT` (raio XL)
+  com um ícone por tipo de arquivo; abas dos grupos com sublinhado `ACCENT` de 3 px; grade em painel
+  `SURFACE`; à direita, o detalhe (círculo na cor do tipo, título 15 pt, **Abrir ferramenta** e
+  Fixar); embaixo, os FIXADOS. Um clique seleciona, duplo clique abre.
 - **Detalhado**: todas as ferramentas por grupo, com busca.
 - O botão "Trocar para detalhado / simples" grava a escolha no `config.json`.
 

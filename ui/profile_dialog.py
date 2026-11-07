@@ -18,7 +18,8 @@ from ui.style import set_prop
 from ui.theme import FONTS, TEXT_SIZES, THEMES, Size, Space, glyph_for
 from ui.tools import BY_ID, GROUPS, PROFILES, TOOLS, Profile
 
-MODE_LABELS = {'simple': 'Simples (blocos grandes)', 'detailed': 'Detalhado (todas as ferramentas)'}
+MODE_LABELS = {'simple': 'Simples', 'detailed': 'Detalhado (todas as ferramentas)'}
+LAYOUT_LABELS = {'sidebar': 'Barra lateral', 'blocks': 'Blocos grandes'}
 
 
 def _section(text: str) -> QLabel:
@@ -165,6 +166,7 @@ class SettingsDialog(QDialog):
         self.font = combo([(f, f) for f in FONTS], settings.font)
         self.text_size = combo([(s, s) for s in TEXT_SIZES], settings.text_size)
         self.mode = combo(list(MODE_LABELS.items()), settings.mode)
+        self.layout_box = combo(list(LAYOUT_LABELS.items()), settings.layout)
         self.name = QLineEdit(settings.name, placeholderText='ex.: Ana')
         self.name.setMaxLength(40)
         self.profile = combo([('', 'Nenhum')] + [(p.id, p.title) for p in PROFILES], settings.profile)
@@ -205,7 +207,7 @@ class SettingsDialog(QDialog):
         layout.addWidget(note)
         layout.addSpacing(Space.XL)
         layout.addWidget(_section('Tela inicial'))
-        layout.addLayout(form(('Abrir em', self.mode)))
+        layout.addLayout(form(('Abrir em', self.mode), ('Visual da tela simples', self.layout_box)))
         layout.addSpacing(Space.XL)
         layout.addWidget(_section('Cadastro'))
         layout.addLayout(form(('Como devo te chamar?', self.name), ('Perfil', self.profile)))
@@ -221,6 +223,7 @@ class SettingsDialog(QDialog):
         before = (s.theme, s.font, s.text_size)
         s.theme, s.font = self.theme.currentData(), self.font.currentData()
         s.text_size, s.mode = self.text_size.currentData(), self.mode.currentData()
+        s.layout = self.layout_box.currentData()
         s.name, s.profile = self.name.text().strip(), self.profile.currentData()
         s.welcomed = 'sim'
         self.appearance_changed = (s.theme, s.font, s.text_size) != before

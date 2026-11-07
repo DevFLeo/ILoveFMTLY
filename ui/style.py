@@ -106,6 +106,31 @@ QPushButton#modeToggle {{ border-radius: {R.MD}px; padding: {S.SM}px {S.LG}px; }
 QPlainTextEdit {{ font-family: "{T.MONO}"; background: {C.BG_SUNKEN}; border: 1px solid {C.BORDER};
                   border-radius: {R.MD}px; padding: {S.SM}px; }}
 
+/* ---- tela simples com barra lateral ---- */
+QWidget#sideHome {{ background: {C.BG}; }}
+QFrame#sideNav {{ background: {C.ACCENT}; border-radius: {R.XL}px; }}
+QPushButton#navButton {{ background: transparent; border: none; border-radius: {R.MD}px; padding: 0; }}
+QPushButton#navButton:hover {{ background: {_rgba(C.TEXT_ON_ACCENT, 25)}; }}
+QPushButton#navButton:checked {{ background: {_rgba(C.TEXT_ON_ACCENT, 45)}; }}
+QPushButton#navButton:focus {{ border: 2px solid {C.TEXT_ON_ACCENT}; }}
+QLineEdit#sideSearch {{ border-radius: {R.LG}px; padding: {S.SM}px {S.LG}px; background: {C.SURFACE}; }}
+QPushButton#sideTab {{ background: transparent; border: none; border-radius: 0; padding: {S.XS}px 0;
+                      border-bottom: 3px solid transparent; color: {C.TEXT_MUTED}; font-weight: 600; }}
+QPushButton#sideTab:hover {{ color: {C.TEXT}; }}
+QPushButton#sideTab:checked {{ color: {C.TEXT}; border-bottom: 3px solid {C.ACCENT}; }}
+QFrame#sidePanel {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.LG}px; }}
+QFrame#sidePanel QLabel, QWidget#sideGrid {{ background: transparent; }}
+QScrollArea#sideScroll {{ background: transparent; border: none; }}
+QLabel#panelTitle {{ font-size: {T.BODY_LG + 2}pt; font-weight: 700; background: transparent; }}
+QFrame#sidePanel QFrame#card {{ background: {C.BG}; }}
+QFrame#card[selected="true"] {{ border: 2px solid {C.ACCENT}; }}
+QFrame#sideDetail {{ background: transparent; }}
+QFrame#sideDetail QLabel {{ background: transparent; }}
+QFrame#sidePreview {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.LG}px; }}
+QLabel#detailGlyph {{ border-radius: {(Size.HOME_GLYPH + 16) // 2}px; }}
+QLabel#detailTitle {{ font-size: {T.HEADING}pt; font-weight: 700; }}
+QPushButton#openTool {{ padding: {S.MD}px; font-size: {T.BODY_LG}pt; }}
+
 /* ---- cadastro (cartões de perfil) ---- */
 QFrame#profileCard {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.LG}px; }}
 QFrame#profileCard:hover {{ border-color: {C.ACCENT}; }}

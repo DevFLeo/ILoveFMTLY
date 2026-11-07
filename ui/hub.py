@@ -39,6 +39,7 @@ class Clickable(QFrame):
     """Bloco clicável por mouse e teclado. Emite `clicked(key)`."""
 
     clicked = Signal(str)
+    double_clicked = Signal(str)
 
     def __init__(self, key: str, enabled: bool = True):
         super().__init__()
@@ -62,6 +63,11 @@ class Clickable(QFrame):
         if event.button() == Qt.LeftButton and self.rect().contains(event.position().toPoint()):
             self.activate()
         super().mouseReleaseEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if self._enabled and event.button() == Qt.LeftButton:
+            self.double_clicked.emit(self.key)
+        super().mouseDoubleClickEvent(event)
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Return, Qt.Key_Enter, Qt.Key_Space):

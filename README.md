@@ -12,14 +12,15 @@ Na primeira vez, o app pergunta **como devo te chamar** e o **perfil** (Pessoal,
 
 A tela inicial tem dois modos, com o botão **Trocar para detalhado / simples**:
 
-- **Simples** (padrão): blocos grandes por tipo de arquivo (PDF, Word e Office, Imagens, Vídeo e GIF, Web e e-book). Clicar num bloco abre uma página só com as ferramentas daquele tipo.
+- **Simples com barra lateral** (padrão): uma barra lateral com os tipos de arquivo, abas por grupo, a grade de ferramentas, um painel com o detalhe da escolhida (Abrir / Fixar) e os cards fixados embaixo. Em Configurações dá para trocar pelo visual de **blocos grandes**.
+- **Simples em blocos**: blocos grandes por tipo de arquivo (PDF, Word e Office, Imagens, Vídeo e GIF, Web e e-book). Clicar num bloco abre uma página só com as ferramentas daquele tipo.
 - **Detalhado**: todas as ferramentas como blocos, por grupo, com busca.
 
 Cada tipo de arquivo tem uma cor: PDF vermelho, Word azul, CSV e planilhas verde, ferramentas de desenvolvedor cinza, imagens e o resto branco. O perfil **Personalizado** deixa a pessoa escolher os cards fixados no topo.
 
 As ferramentas de desenvolvedor seguem a lista do [fmtly.dev](https://fmtly.dev) (MIT), reescritas em Python e 100 % offline: abrem numa janela com entrada, opções e saída, rodando enquanto você digita.
 
-Em **Configurações**: tema (Noite, Claro, Alto contraste), fonte, tamanho do texto, modo inicial e cadastro. Tudo fica num `config.json` pequeno, ao lado do `.exe` (ou na raiz do projeto, rodando pelo Python). Tema, fonte e tamanho valem ao reabrir o app.
+Em **Configurações**: tema (Noite, Claro, Alto contraste, Amarelo), fonte, tamanho do texto, modo inicial e cadastro. Tudo fica num `config.json` pequeno, ao lado do `.exe` (ou na raiz do projeto, rodando pelo Python). Tema, fonte e tamanho valem ao reabrir o app.
 
 Soltar arquivos em qualquer ponto dela abre uma camada com **só os blocos compatíveis** com aqueles arquivos. Todos os blocos funcionam pelo teclado (Tab, Enter, Espaço).
 

@@ -18,6 +18,7 @@ from pathlib import Path
 
 FILENAME = 'config.json'
 MODES = ('simple', 'detailed')
+LAYOUTS = ('sidebar', 'blocks')  # visual da tela simples
 
 
 def _home_dir() -> Path:
@@ -43,7 +44,8 @@ def default_path() -> Path:
 class Settings:
     name: str = ''              # "Como devo te chamar?"
     profile: str = ''           # id do perfil (ui/tools.PROFILES); vazio = sem cadastro
-    mode: str = 'simple'        # tela inicial: 'simple' (blocos grandes) | 'detailed'
+    mode: str = 'simple'        # tela inicial: 'simple' | 'detailed' (todas as ferramentas)
+    layout: str = 'sidebar'     # tela simples: 'sidebar' (barra lateral) | 'blocks' (blocos grandes)
     theme: str = 'Noite'        # nome em ui/theme.THEMES
     font: str = 'IBM Plex Sans'
     text_size: str = 'Normal'   # nome em ui/theme.TEXT_SIZES
@@ -74,6 +76,8 @@ class Settings:
                 setattr(settings, f.name, value.strip())
         if settings.mode not in MODES:
             settings.mode = 'simple'
+        if settings.layout not in LAYOUTS:
+            settings.layout = 'sidebar'
         return settings
 
     def to_dict(self) -> dict:

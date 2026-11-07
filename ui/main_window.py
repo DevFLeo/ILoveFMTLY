@@ -30,6 +30,7 @@ from ui.video_gif_dialog import VideoGifDialog
 from ui.hub import DropLayer, HubPage, SimpleHome, category_page
 from ui.pdf_dialogs import FormsDialog, SignDialog
 from ui.profile_dialog import PinDialog, SettingsDialog, WelcomeDialog
+from ui.side_home import SideHome
 from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.options_panel import OptionsPanel
@@ -253,8 +254,13 @@ class MainWindow(QMainWindow):
     def rebuild_home(self):
         """(Re)cria a tela simples com o nome e o perfil atuais."""
         old = self.home
-        self.home = SimpleHome(self.apps, self.settings.name, self.settings.profile,
-                               self.settings.pinned)
+        page = SideHome if self.settings.layout == 'sidebar' else SimpleHome
+        self.home = page(self.apps, self.settings.name, self.settings.profile, self.settings.pinned)
+        if isinstance(self.home, SideHome):
+            self.home.pin_toggled.connect(self.toggle_pin)
+            if isinstance(old, SideHome):  # mantém onde a pessoa estava
+                self.home.show_section(old.section)
+                self.home.select(old.selected)
         self.home.pins_clicked.connect(self.choose_pins)
         self.home.category_clicked.connect(self.open_category)
         self.home.tool_clicked.connect(self.run_tool)
@@ -322,6 +328,16 @@ class MainWindow(QMainWindow):
         if pinned is None:
             return
         self.settings.pinned = pinned
+        self._save_settings()
+        self.rebuild_home()
+
+    def toggle_pin(self, tool_id: str):
+        """Botão "Fixar" do layout com barra lateral."""
+        pins = self.settings.pinned
+        if tool_id in pins:
+            pins.remove(tool_id)
+        else:
+            pins.append(tool_id)
         self._save_settings()
         self.rebuild_home()
 
