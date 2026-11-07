@@ -4,15 +4,19 @@ Os dois gravam em core.settings.Settings (config.json). Segue o DESIGN.md:
 rótulos de seção em Mono, uma ação principal por diálogo.
 """
 
+import unicodedata
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout,
-                               QLabel, QLineEdit, QPushButton, QVBoxLayout)
+                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton,
+                               QVBoxLayout)
 
 from core.settings import Settings
 from ui.hub import Clickable, make_glyph
+from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.theme import FONTS, TEXT_SIZES, THEMES, Size, Space, glyph_for
-from ui.tools import BY_ID, PROFILES, Profile
+from ui.tools import BY_ID, GROUPS, PROFILES, TOOLS, Profile
 
 MODE_LABELS = {'simple': 'Simples (blocos grandes)', 'detailed': 'Detalhado (todas as ferramentas)'}
 
@@ -49,7 +53,8 @@ class ProfileCard(Clickable):
         layout.addSpacing(Space.SM)
         layout.addWidget(glyph, 0, Qt.AlignHCenter)
         layout.addWidget(title)
-        tools = ', '.join(BY_ID[i].title for i in profile.favorites[:3])
+        tools = (', '.join(BY_ID[i].title for i in profile.favorites[:3]) if profile.favorites
+                 else 'Os cards que você escolher')
         for label, text in (('Objetivo', profile.goal), ('Ideal para', profile.ideal),
                             ('Já vem com', tools)):
             layout.addSpacing(Space.XS)
@@ -119,7 +124,7 @@ class WelcomeDialog(QDialog):
         layout.addSpacing(Space.XL)
         layout.addLayout(buttons)
         self.pick(self.choice)
-        self.resize(980, 560)
+        self.resize(1180, 580)
 
     def pick(self, profile_id: str):
         self.choice = profile_id if any(p.id == profile_id for p in PROFILES) else ''
@@ -220,3 +225,82 @@ class SettingsDialog(QDialog):
         s.welcomed = 'sim'
         self.appearance_changed = (s.theme, s.font, s.text_size) != before
         super().accept()
+
+
+def _fold(text: str) -> str:
+    return ''.join(c for c in unicodedata.normalize('NFD', text.lower())
+                   if unicodedata.category(c) != 'Mn')
+
+
+class PinDialog(QDialog):
+    """Perfil Personalizado: marcar os cards que ficam fixados na tela simples."""
+
+    def __init__(self, parent, pinned: list[str]):
+        super().__init__(parent)
+        self.setWindowTitle('Escolher cards fixados')
+        self.search = QLineEdit(placeholderText='Buscar ferramenta…')
+        self.search.setClearButtonEnabled(True)
+        self.search.textChanged.connect(self.filter)
+        self.list = QListWidget()
+        self.list.setObjectName('pinList')
+        self.items: dict[str, QListWidgetItem] = {}
+        for group in GROUPS:
+            tools = [t for t in TOOLS if t.group == group and not t.soon]
+            if not tools:
+                continue
+            header = QListWidgetItem(group.upper())
+            header.setFlags(Qt.NoItemFlags)
+            header.setData(Qt.UserRole, '')
+            self.list.addItem(header)
+            for t in tools:
+                item = QListWidgetItem(svg_icon(t.icon), f'{t.title}  ·  {t.desc}')
+                item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsUserCheckable)
+                item.setCheckState(Qt.Checked if t.id in pinned else Qt.Unchecked)
+                item.setData(Qt.UserRole, t.id)
+                self.list.addItem(item)
+                self.items[t.id] = item
+        self.list.itemChanged.connect(self._count)
+        self.counter = QLabel()
+        self.counter.setProperty('role', 'mono')
+
+        cancel = QPushButton('Cancelar')
+        cancel.setProperty('variant', 'ghost')
+        cancel.clicked.connect(self.reject)
+        save = QPushButton('Fixar cards')
+        save.setProperty('variant', 'primary')
+        save.setDefault(True)
+        save.clicked.connect(self.accept)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.counter)
+        buttons.addStretch(1)
+        buttons.addWidget(cancel)
+        buttons.addWidget(save)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(Space.XL, Space.XL, Space.XL, Space.XL)
+        layout.setSpacing(Space.SM)
+        layout.addWidget(_section('Marque os cards que ficam no topo da tela simples'))
+        layout.addWidget(self.search)
+        layout.addWidget(self.list, 1)
+        layout.addSpacing(Space.SM)
+        layout.addLayout(buttons)
+        self.resize(620, 640)
+        self._count()
+
+    def _count(self, *_):
+        self.counter.setText(f'{len(self.pinned())} FIXADOS')
+
+    def filter(self, text: str):
+        terms = _fold(text).split()
+        for tid, item in self.items.items():
+            t = BY_ID[tid]
+            hay = _fold(f'{t.title} {t.desc} {t.group}')
+            item.setHidden(not all(term in hay for term in terms))
+
+    def pinned(self) -> list[str]:
+        return [tid for tid, item in self.items.items() if item.checkState() == Qt.Checked]
+
+    @classmethod
+    def ask(cls, parent, pinned: list[str]) -> list[str] | None:
+        dialog = cls(parent, pinned)
+        return dialog.pinned() if dialog.exec() == QDialog.Accepted else None

@@ -28,12 +28,12 @@ from ui.crop_dialog import CropDialog
 from ui.video_gif_dialog import VideoGifDialog
 from ui.hub import DropLayer, HubPage, SimpleHome, category_page
 from ui.pdf_dialogs import FormsDialog, SignDialog
-from ui.profile_dialog import SettingsDialog, WelcomeDialog
+from ui.profile_dialog import PinDialog, SettingsDialog, WelcomeDialog
 from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.options_panel import OptionsPanel
 from ui.thumbnails import ThumbnailGrid
-from ui.tools import BY_ID, OFFICE_LABEL, Tool, accepts_count, file_filter
+from ui.tools import BY_ID, CUSTOM, OFFICE_LABEL, Tool, accepts_count, file_filter
 from ui.theme import ASSETS, Size
 from ui.viewer import Viewer
 from ui.worker import run_in_thread
@@ -252,7 +252,9 @@ class MainWindow(QMainWindow):
     def rebuild_home(self):
         """(Re)cria a tela simples com o nome e o perfil atuais."""
         old = self.home
-        self.home = SimpleHome(self.apps, self.settings.name, self.settings.profile)
+        self.home = SimpleHome(self.apps, self.settings.name, self.settings.profile,
+                               self.settings.pinned)
+        self.home.pins_clicked.connect(self.choose_pins)
         self.home.category_clicked.connect(self.open_category)
         self.home.tool_clicked.connect(self.run_tool)
         self.home.mode_clicked.connect(self.toggle_mode)
@@ -295,6 +297,7 @@ class MainWindow(QMainWindow):
         self.rebuild_home()
         if self.on_hub():
             self.show_hub()
+        self._ask_pins_if_empty()
         if dialog.appearance_changed:
             answer = QMessageBox.question(
                 self, 'Aplicar aparência',
@@ -310,6 +313,20 @@ class MainWindow(QMainWindow):
         self._save_settings()
         self.rebuild_home()
         self.show_hub()
+        self._ask_pins_if_empty()
+
+    def choose_pins(self):
+        """Perfil Personalizado: escolher os cards fixados no topo da tela simples."""
+        pinned = PinDialog.ask(self, self.settings.pinned)
+        if pinned is None:
+            return
+        self.settings.pinned = pinned
+        self._save_settings()
+        self.rebuild_home()
+
+    def _ask_pins_if_empty(self):
+        if self.settings.profile == CUSTOM and not self.settings.pinned:
+            self.choose_pins()
 
     def show_editor(self, hint: str = ''):
         self.stack.setCurrentWidget(self.editor)

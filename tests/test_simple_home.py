@@ -212,3 +212,42 @@ def test_redact_flow(window, qtbot, make_pdf, tmp_path, monkeypatch):
     qtbot.waitUntil(lambda: out.exists() and not window.is_busy(), timeout=10000)
     with pymupdf.open(out) as d:
         assert 'Página 1' not in d[0].get_text() and 'Página 2' in d[1].get_text()
+
+
+# --- perfil Personalizado ---------------------------------------------------
+def test_custom_profile_pins_cards(window, settings, monkeypatch):
+    from ui.profile_dialog import PinDialog
+    settings.profile = 'personalizado'
+    window.rebuild_home()
+    assert window.home.pins_button is not None
+    assert window.home.favorites.cards == []
+    monkeypatch.setattr(PinDialog, 'ask', classmethod(lambda cls, parent, pinned: ['sign', 'merge']))
+    window.home.pins_button.click()
+    assert [c.tool.id for c in window.home.favorites.cards] == ['sign', 'merge']
+    assert Settings.load(settings.path).pinned == ['sign', 'merge']
+
+
+def test_pin_dialog_checks_and_filters(qtbot):
+    from ui.profile_dialog import PinDialog
+    d = PinDialog(None, ['merge'])
+    qtbot.addWidget(d)
+    assert d.pinned() == ['merge']
+    d.items['sign'].setCheckState(Qt.Checked)
+    assert set(d.pinned()) == {'merge', 'sign'} and d.counter.text() == '2 FIXADOS'
+    d.filter('assin')
+    assert not d.items['sign'].isHidden() and d.items['merge'].isHidden()
+    assert 'ocr' not in d.items  # "em breve" não pode ser fixado
+
+
+def test_welcome_custom_asks_pins(window, settings, monkeypatch):
+    from ui.profile_dialog import PinDialog
+
+    def fake_exec(dialog):
+        dialog.pick('personalizado')
+        dialog.accept()
+        return WelcomeDialog.Accepted
+    monkeypatch.setattr(WelcomeDialog, 'exec', fake_exec)
+    monkeypatch.setattr(PinDialog, 'ask', classmethod(lambda cls, parent, pinned: ['redact']))
+    window.maybe_welcome()
+    assert Settings.load(settings.path).pinned == ['redact']
+    assert [c.tool.id for c in window.home.favorites.cards] == ['redact']

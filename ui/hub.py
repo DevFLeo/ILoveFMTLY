@@ -22,7 +22,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEd
 from ui.icons import svg_icon, svg_pixmap
 from ui.style import set_prop
 from ui.theme import ASSETS, Size, Space, glyph_for
-from ui.tools import (BY_ID, CATEGORIES, CATEGORY_BY_ID, CATEGORY_GROUP, GROUPS, OFFICE_LABEL,
+from ui.tools import (BY_ID, CATEGORIES, CATEGORY_BY_ID, CATEGORY_GROUP, CUSTOM, GROUPS, OFFICE_LABEL,
                       PROFILE_BY_ID, TOOLS, Category, Tool, compatible)
 
 COLUMNS = 4
@@ -327,8 +327,10 @@ class SimpleHome(_Page):
     category_clicked = Signal(str)
     tool_clicked = Signal(str)
     mode_clicked = Signal()
+    pins_clicked = Signal()
 
-    def __init__(self, apps: dict[str, bool], name: str = '', profile: str = ''):
+    def __init__(self, apps: dict[str, bool], name: str = '', profile: str = '',
+                 pinned: list[str] | None = None):
         super().__init__()
         prof = PROFILE_BY_ID.get(profile)
         self._header(f'Olá, {name}!' if name else 'Olá!',
@@ -337,13 +339,27 @@ class SimpleHome(_Page):
                      [ghost_button('Configurações', 'settings', self.settings_clicked.emit)])
 
         self.favorites: CardGrid | None = None
+        self.pins_button: QPushButton | None = None
         if prof:
+            custom = prof.id == CUSTOM
+            ids = list(pinned or []) if custom else list(prof.favorites)
+            tools = [BY_ID[i] for i in ids if i in BY_ID and not BY_ID[i].soon]
             header = QLabel(f'SUAS FERRAMENTAS · {prof.title.upper()}')
             header.setObjectName('groupHeader')
-            self.favorites = CardGrid([BY_ID[i] for i in prof.favorites if i in BY_ID], apps,
-                                      self.tool_clicked.emit)
+            row = QHBoxLayout()
+            row.addWidget(header)
+            row.addStretch(1)
+            if custom:  # Personalizado: a pessoa escolhe os cards fixados
+                self.pins_button = ghost_button('Escolher cards', 'layout-grid',
+                                                self.pins_clicked.emit, 'pinsButton')
+                row.addWidget(self.pins_button)
+            self.favorites = CardGrid(tools, apps, self.tool_clicked.emit)
             self.body.addSpacing(Space.XL)
-            self.body.addWidget(header)
+            self.body.addLayout(row)
+            if not tools:
+                empty = QLabel('Nenhum card fixado ainda. Clique em "Escolher cards".')
+                empty.setProperty('tone', 'muted')
+                self.body.addWidget(empty)
             self.body.addWidget(self.favorites)
 
         order = list(prof.categories) if prof else []

@@ -48,6 +48,7 @@ class Settings:
     font: str = 'IBM Plex Sans'
     text_size: str = 'Normal'   # nome em ui/theme.TEXT_SIZES
     welcomed: str = ''          # 'sim' depois que o cadastro já foi mostrado uma vez
+    pinned: list[str] = field(default_factory=list)  # perfil Personalizado: cards fixados
     path: Path | None = field(default=None, repr=False, compare=False)
 
     @property
@@ -66,7 +67,10 @@ class Settings:
             return settings
         for f in fields(cls):
             value = data.get(f.name)
-            if f.name != 'path' and isinstance(value, str):
+            if f.name == 'pinned':
+                if isinstance(value, list):
+                    settings.pinned = [v for v in value if isinstance(v, str)]
+            elif f.name != 'path' and isinstance(value, str):
                 setattr(settings, f.name, value.strip())
         if settings.mode not in MODES:
             settings.mode = 'simple'

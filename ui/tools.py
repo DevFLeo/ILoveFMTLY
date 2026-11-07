@@ -14,6 +14,7 @@ from pathlib import Path
 from core.convert import (EBOOK_EXTS, EXCEL_EXTS, IMAGE_FORMATS, POWERPOINT_EXTS,
                           RASTER_EXTS, WEB_EXTS)
 from core.docx_tools import EXPORT_FORMATS
+from core.image_tools import B64_KINDS, BORDER_COLORS, EFFECTS, LAYOUTS
 from core.images import ANIM_FORMATS, POSITIONS, ROTATE_ACTIONS
 from core.video import VIDEO_EXTS
 from core.engines.word import WORD_INPUT_EXTS
@@ -191,6 +192,47 @@ TOOLS: list[Tool] = [
                  Param('fmt', 'Salvar como', 'GIF', options=tuple(ANIM_FORMATS)))),
     Tool('video2gif', 'Vídeo para GIF', 'Escolha o trecho com prévia; salva GIF ou WebP animado.',
          'Imagens', 'video', VIDEO, mode='dialog', dialog='video', fn='video.to_animation'),
+    Tool('imgadjust', 'Ajustar cores', 'Brilho, contraste, saturação e nitidez.', 'Imagens', 'sun',
+         RASTER, max_files=0, mode='folder', fn='image_tools.adjust',
+         params=(Param('brightness', 'Brilho', 100, min=0, max=300, suffix=' %'),
+                 Param('contrast', 'Contraste', 100, min=0, max=300, suffix=' %'),
+                 Param('saturation', 'Saturação', 100, min=0, max=300, suffix=' %'),
+                 Param('sharpness', 'Nitidez', 100, min=0, max=300, suffix=' %'))),
+    Tool('imgfilter', 'Filtros', 'Preto e branco, sépia, desfoque, contorno, pôster…', 'Imagens',
+         'wand-sparkles', RASTER, max_files=0, mode='folder', fn='image_tools.filter_images',
+         params=(Param('effect', 'Efeito', EFFECTS[0], options=EFFECTS),
+                 Param('strength', 'Intensidade', 50, min=1, max=100, suffix=' %'))),
+    Tool('imgframe', 'Cantos redondos e borda', 'Arredonde os cantos e ponha uma moldura.',
+         'Imagens', 'rounded-frame', RASTER, max_files=0, mode='folder', fn='image_tools.frame',
+         params=(Param('radius', 'Raio dos cantos', 24, min=0, max=2000, suffix=' px'),
+                 Param('border', 'Borda', 0, min=0, max=500, suffix=' px'),
+                 Param('color', 'Cor da borda', 'Branco', options=tuple(BORDER_COLORS)))),
+    Tool('imgnobg', 'Fundo transparente', 'Tira fundos lisos (ex.: branco) e salva PNG.', 'Imagens',
+         'eraser', RASTER, max_files=0, mode='folder', fn='image_tools.remove_background',
+         params=(Param('tolerance', 'Tolerância', 30, min=0, max=255),)),
+    Tool('imgtarget', 'Comprimir até um tamanho', 'Diga o tamanho máximo em KB; o app acha a qualidade.',
+         'Imagens', 'gauge', RASTER, max_files=0, mode='folder', fn='image_tools.compress_to_size',
+         params=(Param('target_kb', 'Tamanho máximo', 200, min=5, max=100000, suffix=' KB'),
+                 Param('fmt', 'Formato', 'JPG', options=('JPG', 'WebP')))),
+    Tool('imgcollage', 'Colagem', 'Junte várias imagens lado a lado, empilhadas ou em grade.',
+         'Imagens', 'grid-2x2', RASTER, max_files=0, min_files=2, mode='file', fn='image_tools.collage',
+         ext='.png', out_suffix='_colagem',
+         params=(Param('layout', 'Arranjo', LAYOUTS[0], options=LAYOUTS),
+                 Param('gap', 'Espaço entre elas', 16, min=0, max=500, suffix=' px'),
+                 Param('background', 'Fundo', 'Branco', options=tuple(BORDER_COLORS)))),
+    Tool('imgpalette', 'Paleta de cores', 'As cores principais da imagem, com os códigos hex.',
+         'Imagens', 'palette', RASTER, max_files=0, mode='folder', fn='image_tools.palette',
+         params=(Param('colors', 'Quantas cores', 6, min=2, max=16),)),
+    Tool('favicon', 'Gerar favicon', 'ICO, PNGs de 16 a 512, ícone da Apple e manifest.', 'Imagens',
+         'app-window', RASTER, mode='folder', fn='image_tools.favicon'),
+    Tool('img2b64', 'Imagem para Base64', 'Texto Base64 ou data URI para HTML e CSS.', 'Imagens',
+         'binary', RASTER, max_files=0, mode='folder', fn='image_tools.to_base64',
+         params=(Param('kind', 'Formato', B64_KINDS[0], options=B64_KINDS),)),
+    Tool('b642img', 'Base64 para imagem', 'Cole o Base64 num .txt e vire imagem de novo.', 'Imagens',
+         'file-image', frozenset({'.txt'}), max_files=0, mode='folder', fn='image_tools.from_base64'),
+    Tool('imginfo', 'Informações da imagem', 'Medidas, cores, DPI, EXIF e GPS num relatório.', 'Imagens',
+         'info', RASTER, max_files=0, mode='file', fn='image_tools.info', ext='.txt',
+         out_suffix='_info'),
     Tool('gif2frames', 'GIF para quadros', 'Cada quadro do GIF vira um PNG.', 'Imagens', 'layers', GIF,
          mode='folder', fn='gif_to_frames'),
 
@@ -316,5 +358,9 @@ PROFILES: list[Profile] = [
             'Contratos, planilhas e relatórios',
             ('sign', 'pdf2excel', 'protect', 'compress', 'docxreplace', 'compare'),
             ('pdf', 'office', 'images', 'web', 'video'), 'Otimizar'),
+    Profile('personalizado', 'Personalizado', 'sliders-horizontal', 'Do seu jeito',
+            'Quem quer escolher os próprios atalhos', (),
+            ('pdf', 'office', 'images', 'video', 'web'), 'Editar'),
 ]
 PROFILE_BY_ID = {p.id: p for p in PROFILES}
+CUSTOM = 'personalizado'  # perfil em que a pessoa escolhe os cards fixados (Settings.pinned)

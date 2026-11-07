@@ -30,3 +30,13 @@ def test_corrupt_or_odd_file_falls_back(tmp_path):
 
 def test_no_path_never_writes(tmp_path):
     assert Settings().save() is None
+
+
+def test_pinned_list_roundtrip(tmp_path):
+    path = tmp_path / 'config.json'
+    s = Settings.load(path)
+    s.profile, s.pinned = 'personalizado', ['merge', 'sign']
+    s.save()
+    assert Settings.load(path).pinned == ['merge', 'sign']
+    path.write_text(json.dumps({'pinned': ['ok', 3, None]}), encoding='utf-8')
+    assert Settings.load(path).pinned == ['ok']
