@@ -39,9 +39,15 @@ if (-not $SkipTests) {
 
 if ($OneFile) { $env:ILOVEFMTLY_ONEFILE = '1' } else { Remove-Item Env:ILOVEFMTLY_ONEFILE -ErrorAction SilentlyContinue }
 
+# O PyInstaller apaga dist\ILoveFMTLY; o config.json (cadastro e preferências) mora lá.
+$Config = 'dist\ILoveFMTLY\config.json'
+$Backup = Join-Path $env:TEMP 'ILoveFMTLY-config.json'
+if (Test-Path $Config) { Copy-Item $Config $Backup -Force }
+
 Write-Host 'Empacotando...'
 & $Py -m PyInstaller --noconfirm --clean ILoveFMTLY.spec
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller falhou.' }
+if (Test-Path $Backup) { Move-Item $Backup $Config -Force; Write-Host 'config.json preservado.' }
 
 $Exe = if ($OneFile) { 'dist\ILoveFMTLY.exe' } else { 'dist\ILoveFMTLY\ILoveFMTLY.exe' }
 if (-not (Test-Path $Exe)) { throw "O PyInstaller terminou, mas $Exe não existe." }
