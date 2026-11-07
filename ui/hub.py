@@ -13,6 +13,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
+from ui.icons import svg_pixmap
 from ui.style import set_prop
 from ui.theme import GROUP_GLYPH, Size, Space
 from ui.tools import GROUPS, OFFICE_LABEL, TOOLS, Tool, compatible
@@ -43,10 +44,11 @@ class ToolCard(QFrame):
         self.setAccessibleDescription(reason or tool.desc)
 
         bg, fg = GROUP_GLYPH.get(tool.group, GROUP_GLYPH['Em breve'])
-        glyph = QLabel(tool.glyph, alignment=Qt.AlignCenter)
+        glyph = QLabel(alignment=Qt.AlignCenter)
         glyph.setObjectName('glyph')
         glyph.setFixedSize(Size.GLYPH, Size.GLYPH)
-        glyph.setStyleSheet(f'background:{bg}; color:{fg};')  # cor por grupo vem dos tokens
+        glyph.setPixmap(svg_pixmap(tool.icon, fg, Size.GLYPH_ICON))
+        glyph.setStyleSheet(f'background:{bg};')  # cor por grupo vem dos tokens
 
         title = QLabel(tool.title)
         title.setObjectName('cardTitle')

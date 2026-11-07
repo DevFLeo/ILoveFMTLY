@@ -7,7 +7,7 @@ Convenções:
   disabled=true (cartões).
 """
 
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PySide6.QtWidgets import QApplication, QWidget
 
 from ui.theme import ASSETS, Color as C, Radius as R, Space as S, Type as T
@@ -15,7 +15,11 @@ from ui.theme import ASSETS, Color as C, Radius as R, Space as S, Type as T
 CHECK_SVG = (ASSETS / 'check.svg').as_posix()
 
 QSS = f"""
-QMainWindow, QWidget {{ background: {C.BG}; color: {C.TEXT}; font-size: {T.BODY}pt; }}
+QMainWindow, QWidget {{ background: {C.BG}; color: {C.TEXT}; font-size: {T.BODY}pt;
+                      font-family: "{T.SANS}"; }}
+QLabel[role="mono"] {{ font-family: "{T.MONO}"; background: transparent; }}
+QLabel[role="section"] {{ font-family: "{T.MONO}"; color: {C.TEXT_MUTED}; font-size: {T.CAPTION}pt;
+                         font-weight: 600; letter-spacing: 2px; background: transparent; }}
 QToolTip {{ background: {C.SURFACE}; color: {C.TEXT}; border: 1px solid {C.BORDER}; padding: {S.XS}px; }}
 
 /* ---- barra de ferramentas ---- */
@@ -54,7 +58,8 @@ QLabel[tone="error"] {{ color: {C.ACCENT}; font-size: {T.CAPTION}pt; font-weight
 QScrollArea#hub, QWidget#hubBody {{ background: {C.BG}; border: none; }}
 QLabel#hubTitle {{ font-size: {T.TITLE}pt; font-weight: 600; }}
 QLabel#hubSubtitle, QLabel#layerHint {{ color: {C.TEXT_MUTED}; font-size: {T.BODY}pt; }}
-QLabel#groupHeader {{ color: {C.ACCENT}; font-size: {T.CAPTION}pt; font-weight: 700; letter-spacing: 2px; }}
+QLabel#groupHeader {{ color: {C.ACCENT}; font-family: "{T.MONO}"; font-size: {T.CAPTION}pt;
+                      font-weight: 600; letter-spacing: 2px; }}
 QLineEdit#hubSearch {{ font-size: {T.BODY_LG}pt; padding: {S.MD}px {S.LG}px; border-radius: {R.LG}px;
                       background: {C.SURFACE}; }}
 
@@ -70,8 +75,7 @@ QLabel#cardTitle {{ font-size: {T.BODY_LG}pt; font-weight: 600; }}
 QLabel#cardDesc {{ color: {C.TEXT_MUTED}; font-size: {T.CAPTION}pt; }}
 QFrame#card[disabled="true"] QLabel#cardTitle {{ color: {C.TEXT_DISABLED}; }}
 QFrame#card[disabled="true"] QLabel#cardDesc {{ color: {C.TEXT_DISABLED}; }}
-QLabel#glyph {{ border-radius: {R.MD}px; font-size: {T.ICON}pt; font-weight: 700;
-               font-family: {T.ICON_FONT}; }}
+QLabel#glyph {{ border-radius: {R.MD}px; }}
 
 /* ---- camada de blocos compatíveis ---- */
 QFrame#dropLayer {{ background: rgba(24, 26, 47, 225); }}
@@ -140,8 +144,26 @@ def set_prop(widget: QWidget, name: str, value) -> None:
     widget.style().polish(widget)
 
 
+FONTS = ASSETS / 'fonts'
+
+
+def load_fonts() -> set[str]:
+    """Registra as fontes embutidas (IBM Plex) e devolve as famílias carregadas."""
+    families = set()
+    for ttf in sorted(FONTS.glob('*.ttf')):
+        font_id = QFontDatabase.addApplicationFont(str(ttf))
+        if font_id != -1:
+            families.update(QFontDatabase.applicationFontFamilies(font_id))
+    return families
+
+
 def apply_style(app: QApplication) -> None:
     app.setStyle('Fusion')
+    load_fonts()
+    font = QFont(T.SANS)
+    font.setPointSize(T.BODY)
+    font.setHintingPreference(QFont.PreferNoHinting)
+    app.setFont(font)
     palette = QPalette()
     for role, color in ((QPalette.Window, C.BG), (QPalette.Base, C.BG), (QPalette.AlternateBase, C.SURFACE),
                         (QPalette.Text, C.TEXT), (QPalette.WindowText, C.TEXT), (QPalette.Button, C.SURFACE),

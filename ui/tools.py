@@ -48,7 +48,7 @@ class Tool:
     title: str
     desc: str
     group: str
-    glyph: str
+    icon: str                  # nome do SVG em assets/icons (Lucide)
     accepts: frozenset = frozenset()
     max_files: int = 1         # 0 = sem limite
     min_files: int = 1
@@ -72,94 +72,94 @@ FRAME = Param('frame_ms', 'Tempo de cada quadro', 600, min=50, max=10000, suffix
 TOOLS: list[Tool] = [
     # Organizar
     Tool('merge', 'Juntar PDF', 'Combine vários PDFs e imagens na ordem que quiser.',
-         'Organizar', '⊕', PDF | IMAGES, max_files=0),
+         'Organizar', 'combine', PDF | IMAGES, max_files=0),
     Tool('split', 'Dividir PDF', 'Separe intervalos de páginas em arquivos independentes.',
-         'Organizar', '✂', PDF),
+         'Organizar', 'split', PDF),
     Tool('organize', 'Organizar páginas', 'Reordene, gire e exclua páginas arrastando.',
-         'Organizar', '▦', PDF | IMAGES, max_files=0),
-    Tool('rotate', 'Girar PDF', 'Gire uma ou várias páginas de uma vez.', 'Organizar', '↻', PDF),
-    Tool('extract', 'Extrair páginas', 'Salve só as páginas que escolher.', 'Organizar', '⇱', PDF),
+         'Organizar', 'layout-grid', PDF | IMAGES, max_files=0),
+    Tool('rotate', 'Girar PDF', 'Gire uma ou várias páginas de uma vez.', 'Organizar', 'rotate-cw', PDF),
+    Tool('extract', 'Extrair páginas', 'Salve só as páginas que escolher.', 'Organizar', 'file-output', PDF),
     Tool('crop', 'Recortar margens', 'Corte o espaço em branco ao redor do conteúdo.',
-         'Organizar', '⌗', PDF, mode='to_editor', fn='crop_margins',
+         'Organizar', 'crop', PDF, mode='to_editor', fn='crop_margins',
          params=(Param('margin', 'Folga', 12, min=0, max=144, suffix=' pt'),)),
 
     # Otimizar
     Tool('compress', 'Comprimir PDF', 'Reduza o tamanho do arquivo reduzindo imagens.',
-         'Otimizar', '⇲', PDF),
-    Tool('repair', 'Reparar PDF', 'Recupere PDFs danificados ou corrompidos.', 'Otimizar', '✚', PDF),
+         'Otimizar', 'shrink', PDF),
+    Tool('repair', 'Reparar PDF', 'Recupere PDFs danificados ou corrompidos.', 'Otimizar', 'wrench', PDF),
     Tool('grayscale', 'Escala de cinza', 'Páginas em tons de cinza (viram imagem).',
-         'Otimizar', '◐', PDF, mode='to_editor', fn='grayscale_pdf', params=(DPI,)),
+         'Otimizar', 'contrast', PDF, mode='to_editor', fn='grayscale_pdf', params=(DPI,)),
 
     # PDF para…
-    Tool('pdf2word', 'PDF para Word', 'Documento DOCX editável.', 'PDF para…', 'W', PDF,
+    Tool('pdf2word', 'PDF para Word', 'Documento DOCX editável.', 'PDF para…', 'file-text', PDF,
          needs='word', mode='file', fn='pdf_to_word', ext='.docx'),
-    Tool('pdf2excel', 'PDF para Excel', 'Cada tabela encontrada vira uma aba.', 'PDF para…', 'X',
+    Tool('pdf2excel', 'PDF para Excel', 'Cada tabela encontrada vira uma aba.', 'PDF para…', 'sheet',
          PDF, mode='file', fn='pdf_to_excel', ext='.xlsx'),
-    Tool('pdf2ppt', 'PDF para PowerPoint', 'Uma página por slide.', 'PDF para…', 'P', PDF,
+    Tool('pdf2ppt', 'PDF para PowerPoint', 'Uma página por slide.', 'PDF para…', 'presentation', PDF,
          needs='powerpoint', mode='file', fn='pdf_to_powerpoint', ext='.pptx', params=(DPI,)),
-    Tool('pdf2img', 'PDF para imagem', 'PNG, JPG, WebP, TIFF... uma por página.', 'PDF para…', '▤',
+    Tool('pdf2img', 'PDF para imagem', 'PNG, JPG, WebP, TIFF... uma por página.', 'PDF para…', 'image',
          PDF, max_files=0, mode='folder', fn='pdf_to_images', params=(FORMAT, DPI)),
-    Tool('pdf2gif', 'PDF para GIF', 'GIF animado: cada página vira um quadro.', 'PDF para…', '▶',
+    Tool('pdf2gif', 'PDF para GIF', 'GIF animado: cada página vira um quadro.', 'PDF para…', 'film',
          PDF, mode='file', fn='pdf_to_gif', ext='.gif',
          params=(Param('dpi', 'Resolução', 72, min=24, max=200, suffix=' dpi'), FRAME)),
-    Tool('pdf2txt', 'PDF para TXT', 'Só o texto, página por página.', 'PDF para…', 'T', PDF,
+    Tool('pdf2txt', 'PDF para TXT', 'Só o texto, página por página.', 'PDF para…', 'type', PDF,
          mode='file', fn='pdf_to_text', ext='.txt'),
-    Tool('pdf2html', 'PDF para HTML', 'Página web com o texto e as imagens.', 'PDF para…', '‹›',
+    Tool('pdf2html', 'PDF para HTML', 'Página web com o texto e as imagens.', 'PDF para…', 'code',
          PDF, mode='file', fn='pdf_to_html', ext='.html'),
-    Tool('pdf2svg', 'PDF para SVG', 'Vetores: uma imagem SVG por página.', 'PDF para…', '◇', PDF,
+    Tool('pdf2svg', 'PDF para SVG', 'Vetores: uma imagem SVG por página.', 'PDF para…', 'pen-tool', PDF,
          mode='folder', fn='pdf_to_svg'),
-    Tool('extractimg', 'Extrair imagens', 'Salve as imagens embutidas no PDF.', 'PDF para…', '⧉',
+    Tool('extractimg', 'Extrair imagens', 'Salve as imagens embutidas no PDF.', 'PDF para…', 'images',
          PDF, mode='folder', fn='extract_images'),
 
     # …para PDF
-    Tool('word2pdf', 'Word para PDF', 'DOCX, DOC, RTF, ODT e TXT em PDF.', '…para PDF', 'W', WORD,
+    Tool('word2pdf', 'Word para PDF', 'DOCX, DOC, RTF, ODT e TXT em PDF.', '…para PDF', 'file-text', WORD,
          max_files=0, needs='word', mode='to_editor', fn='word_to_pdf'),
-    Tool('excel2pdf', 'Excel para PDF', 'XLSX, XLS, ODS e CSV em PDF.', '…para PDF', 'X', EXCEL,
+    Tool('excel2pdf', 'Excel para PDF', 'XLSX, XLS, ODS e CSV em PDF.', '…para PDF', 'sheet', EXCEL,
          max_files=0, needs='excel', mode='to_editor', fn='excel_to_pdf'),
-    Tool('ppt2pdf', 'PowerPoint para PDF', 'PPTX, PPT e ODP em PDF.', '…para PDF', 'P', POWERPOINT,
+    Tool('ppt2pdf', 'PowerPoint para PDF', 'PPTX, PPT e ODP em PDF.', '…para PDF', 'presentation', POWERPOINT,
          max_files=0, needs='powerpoint', mode='to_editor', fn='powerpoint_to_pdf'),
-    Tool('img2pdf', 'Imagem para PDF', 'JPG, PNG, TIFF e outras imagens em PDF.', '…para PDF', '▣',
+    Tool('img2pdf', 'Imagem para PDF', 'JPG, PNG, TIFF e outras imagens em PDF.', '…para PDF', 'file-image',
          IMAGES, max_files=0),
     Tool('web2pdf', 'HTML / Markdown para PDF', 'Páginas HTML, Markdown e TXT em PDF A4.',
-         '…para PDF', '‹›', WEB, max_files=0, mode='to_editor', fn='web_to_pdf'),
+         '…para PDF', 'file-code', WEB, max_files=0, mode='to_editor', fn='web_to_pdf'),
     Tool('ebook2pdf', 'E-book para PDF', 'EPUB, MOBI, FB2, XPS, CBZ e SVG em PDF.', '…para PDF',
-         '❏', EBOOK, max_files=0, mode='to_editor', fn='ebook_to_pdf'),
+         'book-open', EBOOK, max_files=0, mode='to_editor', fn='ebook_to_pdf'),
 
     # Imagens
-    Tool('imgconvert', 'Converter imagem', 'PNG, JPG, WebP, BMP, TIFF, ICO e GIF.', 'Imagens', '⇄',
+    Tool('imgconvert', 'Converter imagem', 'PNG, JPG, WebP, BMP, TIFF, ICO e GIF.', 'Imagens', 'refresh-cw',
          RASTER, max_files=0, mode='folder', fn='convert_images', params=(FORMAT, QUALITY)),
-    Tool('imgresize', 'Redimensionar imagem', 'Aumente ou reduza por porcentagem.', 'Imagens', '⤡',
+    Tool('imgresize', 'Redimensionar imagem', 'Aumente ou reduza por porcentagem.', 'Imagens', 'scaling',
          RASTER, max_files=0, mode='folder', fn='resize_images',
          params=(Param('percent', 'Tamanho', 50, min=1, max=1000, suffix=' %'),)),
     Tool('imgcompress', 'Comprimir imagem', 'Arquivos menores com pouca perda visível.', 'Imagens',
-         '⇲', RASTER, max_files=0, mode='folder', fn='compress_images', params=(QUALITY,)),
-    Tool('img2gif', 'Criar GIF', 'Várias imagens viram um GIF animado.', 'Imagens', '▶', RASTER,
+         'minimize-2', RASTER, max_files=0, mode='folder', fn='compress_images', params=(QUALITY,)),
+    Tool('img2gif', 'Criar GIF', 'Várias imagens viram um GIF animado.', 'Imagens', 'clapperboard', RASTER,
          max_files=0, min_files=2, mode='file', fn='images_to_gif', ext='.gif',
          params=(FRAME, Param('width', 'Largura (0 = original)', 0, min=0, max=4000, suffix=' px'))),
-    Tool('gif2frames', 'GIF para quadros', 'Cada quadro do GIF vira um PNG.', 'Imagens', '▥', GIF,
+    Tool('gif2frames', 'GIF para quadros', 'Cada quadro do GIF vira um PNG.', 'Imagens', 'layers', GIF,
          mode='folder', fn='gif_to_frames'),
 
     # Editar
-    Tool('numbers', 'Numerar páginas', 'Adicione números ao rodapé das páginas.', 'Editar', '#', PDF),
+    Tool('numbers', 'Numerar páginas', 'Adicione números ao rodapé das páginas.', 'Editar', 'list-ordered', PDF),
     Tool('watermark', "Marca d'água", 'Carimbe um texto em diagonal sobre as páginas.',
-         'Editar', '≋', PDF),
+         'Editar', 'stamp', PDF),
     Tool('compare', 'Comparar PDF', 'Relatório com as diferenças de texto entre dois PDFs.',
-         'Editar', '⇋', PDF, min_files=2, max_files=2, mode='file', fn='compare_pdfs', ext='.html'),
+         'Editar', 'git-compare-arrows', PDF, min_files=2, max_files=2, mode='file', fn='compare_pdfs', ext='.html'),
 
     # Segurança
-    Tool('protect', 'Proteger PDF', 'Senha AES-256 para abrir o arquivo.', 'Segurança', '⚿', PDF),
+    Tool('protect', 'Proteger PDF', 'Senha AES-256 para abrir o arquivo.', 'Segurança', 'lock', PDF),
     Tool('unlock', 'Desbloquear PDF', 'Remova a senha de um PDF (você precisa saber a senha).',
-         'Segurança', '⚷', PDF),
+         'Segurança', 'lock-open', PDF),
     Tool('metadata', 'Remover metadados', 'Apague autor, software, datas e XMP.',
-         'Segurança', '⌫', PDF),
+         'Segurança', 'eraser', PDF),
 
     # Em breve
-    Tool('sign', 'Assinar PDF', 'Assinatura desenhada ou em imagem.', 'Em breve', '✍', soon=True),
-    Tool('redact', 'Tarja', 'Apague de verdade trechos sensíveis.', 'Em breve', '▬', soon=True),
-    Tool('edit', 'Editar PDF', 'Texto, imagens e formas sobre as páginas.', 'Em breve', '✎', soon=True),
-    Tool('forms', 'Formulários', 'Preencha campos de formulários PDF.', 'Em breve', '☑', soon=True),
-    Tool('ocr', 'OCR', 'Torne PDFs escaneados pesquisáveis.', 'Em breve', '⌕', soon=True),
-    Tool('pdfa', 'PDF/A', 'Formato para arquivamento de longo prazo.', 'Em breve', 'A', soon=True),
+    Tool('sign', 'Assinar PDF', 'Assinatura desenhada ou em imagem.', 'Em breve', 'signature', soon=True),
+    Tool('redact', 'Tarja', 'Apague de verdade trechos sensíveis.', 'Em breve', 'eye-off', soon=True),
+    Tool('edit', 'Editar PDF', 'Texto, imagens e formas sobre as páginas.', 'Em breve', 'square-pen', soon=True),
+    Tool('forms', 'Formulários', 'Preencha campos de formulários PDF.', 'Em breve', 'text-cursor-input', soon=True),
+    Tool('ocr', 'OCR', 'Torne PDFs escaneados pesquisáveis.', 'Em breve', 'scan-text', soon=True),
+    Tool('pdfa', 'PDF/A', 'Formato para arquivamento de longo prazo.', 'Em breve', 'archive', soon=True),
 ]
 
 BY_ID = {t.id: t for t in TOOLS}

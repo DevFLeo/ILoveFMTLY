@@ -38,9 +38,9 @@ class Type:
     CAPTION = 9    # pt: descrições, rótulos secundários
     BODY = 10      # pt: texto padrão
     BODY_LG = 11   # pt: títulos de cartão
-    ICON = 16      # pt: glifos dos blocos
     TITLE = 20     # pt: título de tela
-    ICON_FONT = '"Segoe UI Symbol", "Segoe UI Emoji", "Segoe UI"'
+    SANS = 'IBM Plex Sans'   # texto, títulos, botões (assets/fonts, OFL)
+    MONO = 'IBM Plex Mono'   # números, tempos, tamanhos, rótulos em maiúsculas
 
 
 class Radius:
@@ -63,6 +63,7 @@ class Space:
 class Size:
     CARD_HEIGHT = 132
     GLYPH = 36
+    GLYPH_ICON = 20  # ícone SVG dentro do quadrado do bloco
     ICON_BUTTON = 32
     TOOLBAR_ICON = 18
     THEME_GIF = 10   # px, GIF no canto inferior direito

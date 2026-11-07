@@ -20,7 +20,7 @@ from core.ranges import parse_ranges
 from core.workspace import Workspace
 from ui import dialogs
 from ui.hub import DropLayer, HubPage
-from ui.icons import glyph_icon
+from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.options_panel import OptionsPanel
 from ui.thumbnails import ThumbnailGrid
@@ -152,30 +152,30 @@ class MainWindow(QMainWindow):
         if shortcut:
             act.setShortcut(QKeySequence(shortcut))
         if icon is not None:
-            act.setIcon(glyph_icon(icon))
+            act.setIcon(svg_icon(icon))
         act.setToolTip(f'{tip or text} ({shortcut})' if shortcut else (tip or text))
         return act
 
     def _build_actions(self):
-        self.act_home = self._action('Início', self.show_hub, 'Alt+Home', '⌂',
+        self.act_home = self._action('Início', self.show_hub, 'Alt+Home', 'house',
                                      'Voltar para as ferramentas')
-        self.act_import = self._action('Importar', self.import_dialog, 'Ctrl+O', '⊕',
+        self.act_import = self._action('Importar', self.import_dialog, 'Ctrl+O', 'file-plus',
                                        'Adicionar PDFs ou imagens ao documento')
-        self.act_clear = self._action('Novo', self.clear_document, 'Ctrl+N', '▢',
+        self.act_clear = self._action('Novo', self.clear_document, 'Ctrl+N', 'file',
                                       'Começar um documento vazio')
-        self.act_rot_l = self._action('Girar', lambda: self.rotate(-90), 'Ctrl+L', '↺', 'Girar para a esquerda')
-        self.act_rot_r = self._action('Girar', lambda: self.rotate(90), 'Ctrl+R', '↻', 'Girar para a direita')
-        self.act_delete = self._action('Excluir', self.delete_selected, 'Del', '✕',
+        self.act_rot_l = self._action('Girar', lambda: self.rotate(-90), 'Ctrl+L', 'rotate-ccw', 'Girar para a esquerda')
+        self.act_rot_r = self._action('Girar', lambda: self.rotate(90), 'Ctrl+R', 'rotate-cw', 'Girar para a direita')
+        self.act_delete = self._action('Excluir', self.delete_selected, 'Del', 'trash-2',
                                        'Excluir páginas selecionadas')
-        self.act_undo = self._action('Desfazer', self.undo, 'Ctrl+Z', '↶')
-        self.act_redo = self._action('Refazer', self.redo, 'Ctrl+Y', '↷')
-        self.act_extract = self._action('Extrair', self.extract_dialog, 'Ctrl+E', '⇱',
+        self.act_undo = self._action('Desfazer', self.undo, 'Ctrl+Z', 'undo-2')
+        self.act_redo = self._action('Refazer', self.redo, 'Ctrl+Y', 'redo-2')
+        self.act_extract = self._action('Extrair', self.extract_dialog, 'Ctrl+E', 'file-output',
                                         'Salvar só as páginas selecionadas')
-        self.act_split = self._action('Dividir', self.split_dialog, 'Ctrl+D', '✂',
+        self.act_split = self._action('Dividir', self.split_dialog, 'Ctrl+D', 'scissors',
                                       'Dividir em vários arquivos por intervalos')
-        self.act_meta = self._action('Metadados', self.show_metadata, None, 'ⓘ',
+        self.act_meta = self._action('Metadados', self.show_metadata, None, 'info',
                                      'Ver metadados dos arquivos de origem')
-        self.act_print = self._action('Imprimir', self.print_dialog, 'Ctrl+P', '⎙')
+        self.act_print = self._action('Imprimir', self.print_dialog, 'Ctrl+P', 'printer')
         self.act_export = self._action('Exportar PDF', self.export_dialog, 'Ctrl+S', None,
                                        'Gravar o documento final')
 
