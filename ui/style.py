@@ -58,14 +58,14 @@ QPushButton[variant="primary"]:hover {{ background: {C.ACCENT_HOVER}; }}
 
 /* ---- texto ---- */
 QLabel[tone="muted"] {{ color: {C.TEXT_MUTED}; font-size: {T.CAPTION}pt; background: transparent; }}
-QLabel[tone="error"] {{ color: {C.ACCENT}; font-size: {T.CAPTION}pt; font-weight: 600;
+QLabel[tone="error"] {{ color: {C.ACCENT_TEXT}; font-size: {T.CAPTION}pt; font-weight: 600;
                        background: transparent; }}
 
 /* ---- hub ---- */
 QScrollArea#hub, QWidget#hubBody {{ background: {C.BG}; border: none; }}
 QLabel#hubTitle {{ font-size: {T.TITLE}pt; font-weight: 600; }}
 QLabel#hubSubtitle, QLabel#layerHint {{ color: {C.TEXT_MUTED}; font-size: {T.BODY}pt; }}
-QLabel#groupHeader {{ color: {C.ACCENT}; font-family: "{T.MONO}"; font-size: {T.CAPTION}pt;
+QLabel#groupHeader {{ color: {C.ACCENT_TEXT}; font-family: "{T.MONO}"; font-size: {T.CAPTION}pt;
                       font-weight: 600; letter-spacing: 2px; }}
 QLineEdit#hubSearch {{ font-size: {T.BODY_LG}pt; padding: {S.MD}px {S.LG}px; border-radius: {R.LG}px;
                       background: {C.SURFACE}; }}
@@ -90,7 +90,7 @@ QFrame#layerPanel {{ background: {C.BG}; border: 1px solid {C.ACCENT}; border-ra
 QScrollArea#layerScroll {{ background: transparent; border: none; }}
 QFrame#layerPanel QWidget {{ background: transparent; }}
 QFrame#layerPanel QFrame#card {{ background: {C.SURFACE}; }}
-QLabel#fileChip {{ background: {C.WINE}; color: {C.ACCENT}; border-radius: {R.MD}px;
+QLabel#fileChip {{ background: {C.WINE}; color: {C.ACCENT_TEXT}; border-radius: {R.MD}px;
                    padding: {S.SM}px {S.LG}px; font-weight: 600; }}
 
 /* ---- tela simples (blocos grandes) ---- */
@@ -102,7 +102,9 @@ QFrame#homeCard QLabel {{ background: transparent; }}
 QLabel#homeTitle {{ font-size: {T.HEADING}pt; font-weight: 600; }}
 QLabel#homeGlyph {{ border-radius: {Size.HOME_GLYPH // 2}px; }}
 QLabel#homeCount {{ color: {C.TEXT_MUTED}; font-family: "{T.MONO}"; font-size: {T.CAPTION}pt; }}
-QPushButton#modeToggle {{ border-radius: {R.LG}px; padding: {S.SM}px {S.LG}px; }}
+QPushButton#modeToggle {{ border-radius: {R.MD}px; padding: {S.SM}px {S.LG}px; }}
+QPlainTextEdit {{ font-family: "{T.MONO}"; background: {C.BG_SUNKEN}; border: 1px solid {C.BORDER};
+                  border-radius: {R.MD}px; padding: {S.SM}px; }}
 
 /* ---- cadastro (cartões de perfil) ---- */
 QFrame#profileCard {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.LG}px; }}
@@ -120,12 +122,12 @@ QFrame#profileBar {{ border-radius: {Size.PROFILE_BAR // 2}px; }}
 QWidget#signPad {{ background: {C.SURFACE}; border: 1px dashed {C.BORDER}; border-radius: {R.LG}px; }}
 
 /* ---- editor ---- */
-QLabel#hintBar {{ background: {C.WINE}; color: {C.ACCENT}; padding: {S.SM}px {S.LG}px; }}
+QLabel#hintBar {{ background: {C.WINE}; color: {C.ACCENT_TEXT}; padding: {S.SM}px {S.LG}px; }}
 QListWidget#thumbnails {{ background: {C.BG}; border: none; outline: 0; color: {C.TEXT_MUTED}; }}
 QListWidget#thumbnails::item {{ color: {C.TEXT_MUTED}; border-radius: {R.MD}px; padding: {S.SM}px;
                                 border: 2px solid transparent; }}
 QListWidget#thumbnails::item:hover {{ background: {C.SURFACE}; }}
-QListWidget#thumbnails::item:selected {{ background: {C.WINE}; color: {C.ACCENT};
+QListWidget#thumbnails::item:selected {{ background: {C.WINE}; color: {C.ACCENT_TEXT};
                                          border: 2px solid {C.ACCENT}; }}
 QWidget#viewer, QScrollArea {{ background: {C.BG_SUNKEN}; border: none; }}
 QLabel#page {{ background: transparent; }}
@@ -134,7 +136,7 @@ QWidget#options {{ background: {C.BG}; }}
 /* ---- formulários ---- */
 QGroupBox {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.LG}px;
             margin-top: {S.LG}px; padding: {S.MD}px {S.SM}px {S.SM}px {S.SM}px;
-            font-weight: 600; color: {C.ACCENT}; }}
+            font-weight: 600; color: {C.ACCENT_TEXT}; }}
 QGroupBox::title {{ subcontrol-origin: margin; left: {S.MD}px; padding: 0 {S.XS}px; }}
 QGroupBox QLabel, QGroupBox QCheckBox {{ background: transparent; color: {C.TEXT}; font-weight: normal; }}
 QLineEdit, QComboBox, QSpinBox {{ background: {C.BG}; color: {C.TEXT}; border: 1px solid {C.BORDER};
@@ -150,7 +152,7 @@ QCheckBox::indicator {{ width: 16px; height: 16px; border: 1px solid {C.BORDER};
                        border-radius: {R.SM}px; background: {C.BG}; }}
 QCheckBox::indicator:hover {{ border-color: {C.ACCENT}; }}
 QCheckBox::indicator:checked {{ background: {C.ACCENT}; border-color: {C.ACCENT}; image: url({CHECK_SVG}); }}
-QCheckBox:focus {{ color: {C.ACCENT}; }}
+QCheckBox:focus {{ color: {C.ACCENT_TEXT}; }}
 
 /* ---- estrutura ---- */
 QStatusBar {{ background: {C.SURFACE}; border-top: 1px solid {C.BORDER}; color: {C.TEXT_MUTED}; }}
@@ -166,7 +168,7 @@ QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
 QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 QMessageBox, QDialog, QInputDialog {{ background: {C.BG}; }}
 QTableWidget {{ background: {C.SURFACE}; gridline-color: {C.BORDER}; color: {C.TEXT}; }}
-QHeaderView::section {{ background: {C.BG}; color: {C.ACCENT}; border: none; padding: {S.SM}px; }}
+QHeaderView::section {{ background: {C.BG}; color: {C.ACCENT_TEXT}; border: none; padding: {S.SM}px; }}
 """
 
 

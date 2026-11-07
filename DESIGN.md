@@ -83,6 +83,12 @@ A folha com dobra vermelha, olhos, bochechas e um coração (o "I love").
 saem de `scripts/mascote.py`; para mudar o desenho, edite o script e rode de novo.
 No hub aparece com 56 px (`Size.LOGO`) ao lado do título.
 
+## Cor por tipo de arquivo
+
+Tokens `FILE_*` / `ON_FILE_*` em cada tema: PDF vermelho, Word azul ciano suave, CSV/Excel verde,
+dev (fmtly) cinza visível, imagem e o resto branco. Usados nos blocos grandes (`CATEGORY_GROUP`)
+e nos grupos Word, Imagens, CSV e de dev (`GROUP_GLYPH`).
+
 ## Telas iniciais
 
 - **Simples** (padrão): saudação "Olá, {nome}!", favoritas do perfil (`SUAS FERRAMENTAS`)
@@ -110,6 +116,9 @@ borda `ACCENT` 2 px. Aparece na primeira vez; depois, em Configurações.
   (0 = última), posição e tamanho em % da largura. Ação única: **Assinar**.
 - **Preencher formulário:** um campo por linha, contagem em Mono, opção "Deixar fixo".
   Ação única: **Preencher**.
+
+- **Ferramentas de dev:** entrada à esquerda em Mono, opções abaixo, saída à direita;
+  roda sozinha ao digitar (300 ms), erro em `tone="error"` acima da saída. Ações: Copiar, Salvar, **Rodar**.
 
 ## Texto
 

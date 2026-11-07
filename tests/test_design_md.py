@@ -18,7 +18,7 @@ from ui.style import apply_style  # noqa: E402
 from ui.theme import Size, Type  # noqa: E402
 from ui.tools import TOOLS  # noqa: E402
 
-TOOLS_WITH_PARAMS = [t for t in TOOLS if t.params]
+TOOLS_WITH_PARAMS = [t for t in TOOLS if t.params and t.mode != 'dev']  # dev usa o DevDialog
 
 
 @pytest.fixture

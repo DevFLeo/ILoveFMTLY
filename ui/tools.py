@@ -34,46 +34,13 @@ VIDEO = frozenset(VIDEO_EXTS)
 DOCX = frozenset({'.docx', '.docm', '.dotx'})
 
 GROUPS = ['Organizar', 'Otimizar', 'PDF para…', '…para PDF', 'Word', 'Imagens', 'Editar',
-          'Segurança', 'Em breve']
+          'Segurança', 'JSON', 'XML', 'YAML', 'CSV', 'TOML', 'Texto', 'Codificar', 'Cripto',
+          'QR e códigos', 'IA', 'Geradores', 'Web', 'Em breve']
 
 OFFICE_LABEL = {'word': 'Word', 'excel': 'Excel', 'powerpoint': 'PowerPoint'}
 
 
-@dataclass(frozen=True)
-class Param:
-    key: str
-    label: str
-    default: object            # str sem options = campo de texto
-    options: tuple = ()        # escolha entre opções (texto)
-    min: int = 0               # números inteiros
-    max: int = 0
-    suffix: str = ''
-    hint: str = ''             # texto de exemplo em campos de texto
-    file_filter: str = ''      # campo de arquivo (texto + "Escolher…"), ex.: 'Imagens (*.png)'
-
-
-@dataclass(frozen=True)
-class Tool:
-    id: str
-    title: str
-    desc: str
-    group: str
-    icon: str                  # nome do SVG em assets/icons (Lucide)
-    accepts: frozenset = frozenset()
-    max_files: int = 1         # 0 = sem limite
-    min_files: int = 1
-    soon: bool = False
-    needs: str | None = None   # 'word' | 'excel' | 'powerpoint'
-    mode: str = 'editor'       # editor | to_editor | file | folder | dialog
-    fn: str = ''               # função em core.convert, ou 'modulo.funcao' em core/
-    ext: str = ''              # extensão de saída no modo file
-    out_suffix: str = ''       # sufixo do nome sugerido no modo file/dialog (ex.: '_juntado')
-    dialog: str = ''           # modo dialog: 'crop' | 'blur' | 'video'
-    params: tuple = field(default_factory=tuple)
-
-    @property
-    def multi(self) -> bool:
-        return self.max_files != 1
+from ui.tool_base import Param, Tool  # noqa: E402,F401  (reexportados)
 
 
 DPI = Param('dpi', 'Resolução', 150, min=36, max=600, suffix=' dpi')
@@ -273,6 +240,10 @@ TOOLS: list[Tool] = [
          soon=True),
 ]
 
+# Ferramentas de desenvolvedor (fmtly.dev): ui/dev_tools.py usa Tool/Param, já definidos acima.
+from ui.dev_tools import DEV_TOOLS  # noqa: E402
+
+TOOLS[-3:-3] = DEV_TOOLS  # antes dos "em breve"
 BY_ID = {t.id: t for t in TOOLS}
 
 
@@ -311,21 +282,33 @@ CATEGORIES: list[Category] = [
     Category('pdf', 'PDF', 'Juntar, dividir, comprimir, assinar, proteger…', 'file',
              _ids(lambda t: '.pdf' in t.accepts and t.id not in ('pdf2gif',))),
     Category('office', 'Word e Office', 'Word, Excel e PowerPoint de e para PDF.', 'file-text',
-             _ids(lambda t: t.id != 'web2pdf' and (t.group == 'Word' or t.accepts & (WORD | EXCEL | POWERPOINT)
-                  or t.id in ('pdf2word', 'pdf2excel', 'pdf2ppt')))),
+             _ids(lambda t: t.mode != 'dev' and t.id != 'web2pdf' and (
+                 t.group == 'Word' or t.accepts & (WORD | EXCEL | POWERPOINT)
+                 or t.id in ('pdf2word', 'pdf2excel', 'pdf2ppt')))),
+    Category('csv', 'CSV e planilhas', 'CSV para JSON, SQL, HTML; validar, limpar e comparar.', 'sheet',
+             _ids(lambda t: t.group == 'CSV' or t.id in ('pdf2excel', 'excel2pdf', 'json-csv', 'xml-csv',
+                                                          'yaml-csv'))),
     Category('images', 'Imagens', 'Converter, recortar, comprimir, borrar…', 'image',
              _ids(lambda t: (t.group == 'Imagens' and t.id not in ('video2gif', 'gifedit', 'gif2frames'))
                   or t.id in ('img2pdf', 'pdf2img'))),
     Category('video', 'Vídeo e GIF', 'Vídeo para GIF, editar e criar GIFs.', 'clapperboard',
              ('video2gif', 'gifedit', 'img2gif', 'gif2frames', 'pdf2gif')),
     Category('web', 'Web e e-book', 'HTML, Markdown, EPUB e outros para PDF.', 'book-open',
-             ('web2pdf', 'ebook2pdf', 'pdf2html', 'docx2text')),
+             ('web2pdf', 'ebook2pdf', 'pdf2html', 'docx2text', 'md-html', 'url-parse')),
+    Category('data', 'JSON, XML, YAML e TOML', 'Formatar, validar, converter, consultar e gerar tipos.',
+             'braces', _ids(lambda t: t.group in ('JSON', 'XML', 'YAML', 'TOML'))),
+    Category('text', 'Texto e código', 'Contar, comparar, regex, Base64, URL, JWT, Unicode…', 'type',
+             _ids(lambda t: t.group in ('Texto', 'Codificar', 'Web', 'IA'))),
+    Category('dev', 'Cripto, QR e geradores', 'Hash, senhas, UUID, chaves, QR, código de barras…',
+             'key-round', _ids(lambda t: t.group in ('Cripto', 'QR e códigos', 'Geradores'))),
 ]
 CATEGORY_BY_ID = {c.id: c for c in CATEGORIES}
 
-# Cor do glifo de cada bloco grande: reaproveita a de um grupo (ui/theme.GROUP_GLYPH).
-CATEGORY_GROUP = {'pdf': 'PDF para…', 'office': 'Organizar', 'images': 'Imagens',
-                  'video': '…para PDF', 'web': 'Otimizar'}
+# Cor do glifo de cada bloco grande, pelo tipo de arquivo (ui/theme.GROUP_GLYPH):
+# PDF vermelho, Word azul, CSV/Excel verde, ferramentas de dev cinza, imagem e o resto branco.
+CATEGORY_GROUP = {'pdf': 'file:pdf', 'office': 'file:word', 'csv': 'file:excel', 'images': 'file:image',
+                  'video': 'file:image', 'web': 'file:image', 'data': 'file:dev', 'text': 'file:dev',
+                  'dev': 'file:dev'}
 
 
 # --- cadastro: perfis ----------------------------------------------------------
@@ -345,22 +328,22 @@ PROFILES: list[Profile] = [
     Profile('pessoal', 'Pessoal', 'user', 'Resolver o dia a dia rápido',
             'Fotos, documentos pessoais e GIFs',
             ('img2pdf', 'merge', 'compress', 'imgcompress', 'video2gif', 'pdf2img'),
-            ('pdf', 'images', 'video', 'office', 'web'), 'Organizar'),
+            ('pdf', 'images', 'video', 'office', 'csv', 'web', 'data', 'text', 'dev'), 'Organizar'),
     Profile('estudante', 'Estudante', 'graduation-cap', 'Entregar trabalhos sem sufoco',
             'Escola, faculdade e concursos',
             ('merge', 'compress', 'word2pdf', 'pdf2word', 'numbers', 'web2pdf'),
-            ('pdf', 'office', 'web', 'images', 'video'), '…para PDF'),
+            ('pdf', 'office', 'web', 'images', 'csv', 'video', 'text', 'data', 'dev'), '…para PDF'),
     Profile('instituicao', 'Instituição', 'building-2', 'Documentos oficiais e seguros',
             'Escolas, órgãos públicos e ONGs',
             ('sign', 'redact', 'forms', 'protect', 'numbers', 'watermark'),
-            ('pdf', 'office', 'images', 'web', 'video'), 'PDF para…'),
+            ('pdf', 'office', 'csv', 'images', 'web', 'video', 'text', 'data', 'dev'), 'PDF para…'),
     Profile('empresa', 'Empresa', 'briefcase', 'Agilizar o trabalho do escritório',
             'Contratos, planilhas e relatórios',
             ('sign', 'pdf2excel', 'protect', 'compress', 'docxreplace', 'compare'),
-            ('pdf', 'office', 'images', 'web', 'video'), 'Otimizar'),
+            ('pdf', 'office', 'csv', 'data', 'images', 'web', 'text', 'dev', 'video'), 'Otimizar'),
     Profile('personalizado', 'Personalizado', 'sliders-horizontal', 'Do seu jeito',
             'Quem quer escolher os próprios atalhos', (),
-            ('pdf', 'office', 'images', 'video', 'web'), 'Editar'),
+            ('pdf', 'office', 'csv', 'images', 'video', 'web', 'data', 'text', 'dev'), 'Editar'),
 ]
 PROFILE_BY_ID = {p.id: p for p in PROFILES}
 CUSTOM = 'personalizado'  # perfil em que a pessoa escolhe os cards fixados (Settings.pinned)

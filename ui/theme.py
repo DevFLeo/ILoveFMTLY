@@ -18,6 +18,7 @@ THEMES: dict[str, dict[str, str]] = {
         'SURFACE': '#242E49',          # cartões, barras, painéis
         'BORDER': '#37415C',           # bordas, campos, hover neutro
         'ACCENT': '#FDA481',           # destaque, foco, ação principal
+        'ACCENT_TEXT': '#FDA481',   # destaque usado como texto/ícone
         'DANGER': '#B4182D',           # perigo e erro (nunca seleção)
         'WINE': '#54162B',             # seleção, faixas, detalhes
         'BG_SUNKEN': '#11132A',        # área de leitura do visualizador
@@ -31,12 +32,19 @@ THEMES: dict[str, dict[str, str]] = {
         'TEXT_DISABLED': '#6B7390',
         'TEXT_ON_ACCENT': '#181A2F',
         'TEXT_ON_DANGER': '#F3F4F8',
+        # cor por tipo de arquivo (fundo, símbolo)
+        'FILE_PDF': '#B4182D', 'ON_FILE_PDF': '#F3F4F8',       # vermelho
+        'FILE_WORD': '#5AAFE0', 'ON_FILE_WORD': '#0C1E2E',     # azul ciano suave
+        'FILE_EXCEL': '#21A366', 'ON_FILE_EXCEL': '#FFFFFF',   # verde Excel
+        'FILE_DEV': '#8A93A8', 'ON_FILE_DEV': '#14172A',       # cinza visível
+        'FILE_IMAGE': '#F3F4F8', 'ON_FILE_IMAGE': '#181A2F',   # branco
     },
     'Claro': {
         'BG': '#F6F3EF',
         'SURFACE': '#FFFFFF',
         'BORDER': '#D9D3CC',
         'ACCENT': '#C8553D',
+        'ACCENT_TEXT': '#C8553D',   # destaque usado como texto/ícone
         'DANGER': '#B4182D',
         'WINE': '#F3D9CF',
         'BG_SUNKEN': '#ECE7E1',
@@ -50,12 +58,18 @@ THEMES: dict[str, dict[str, str]] = {
         'TEXT_DISABLED': '#A3A7B6',
         'TEXT_ON_ACCENT': '#FFFFFF',
         'TEXT_ON_DANGER': '#FFFFFF',
+        'FILE_PDF': '#C62828', 'ON_FILE_PDF': '#FFFFFF',
+        'FILE_WORD': '#3A8FC8', 'ON_FILE_WORD': '#FFFFFF',
+        'FILE_EXCEL': '#1E8A4F', 'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_DEV': '#6B7280', 'ON_FILE_DEV': '#FFFFFF',
+        'FILE_IMAGE': '#ECE7E1', 'ON_FILE_IMAGE': '#1D2033',
     },
     'Alto contraste': {
         'BG': '#000000',
         'SURFACE': '#121212',
         'BORDER': '#6E6E6E',
         'ACCENT': '#FFD400',
+        'ACCENT_TEXT': '#FFD400',   # destaque usado como texto/ícone
         'DANGER': '#FF4D4D',
         'WINE': '#3A2E00',
         'BG_SUNKEN': '#000000',
@@ -69,6 +83,36 @@ THEMES: dict[str, dict[str, str]] = {
         'TEXT_DISABLED': '#8C8C8C',
         'TEXT_ON_ACCENT': '#000000',
         'TEXT_ON_DANGER': '#000000',
+        'FILE_PDF': '#FF4D4D', 'ON_FILE_PDF': '#000000',
+        'FILE_WORD': '#66CCFF', 'ON_FILE_WORD': '#000000',
+        'FILE_EXCEL': '#33DD77', 'ON_FILE_EXCEL': '#000000',
+        'FILE_DEV': '#BBBBBB', 'ON_FILE_DEV': '#000000',
+        'FILE_IMAGE': '#FFFFFF', 'ON_FILE_IMAGE': '#000000',
+    },
+    'Amarelo': {
+        'BG': '#F5F5F5',
+        'SURFACE': '#FFFFFF',
+        'BORDER': '#D9D9D9',
+        'ACCENT': '#FFD24D',
+        'ACCENT_TEXT': '#7A5C00',
+        'DANGER': '#C62828',
+        'WINE': '#FFF1C2',
+        'BG_SUNKEN': '#EBEBEB',
+        'SURFACE_HOVER': '#FFFBEA',
+        'SURFACE_DISABLED': '#F0F0F0',
+        'BORDER_DISABLED': '#E6E6E6',
+        'ACCENT_HOVER': '#FFDC6E',
+        'DANGER_BG': '#FDE4E4',
+        'TEXT': '#2B2B2B',
+        'TEXT_MUTED': '#6B6B6B',
+        'TEXT_DISABLED': '#ABABAB',
+        'TEXT_ON_ACCENT': '#4D3A00',
+        'TEXT_ON_DANGER': '#FFFFFF',
+        'FILE_PDF': '#C62828', 'ON_FILE_PDF': '#FFFFFF',
+        'FILE_WORD': '#3A8FC8', 'ON_FILE_WORD': '#FFFFFF',
+        'FILE_EXCEL': '#1E8A4F', 'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_DEV': '#6B7280', 'ON_FILE_DEV': '#FFFFFF',
+        'FILE_IMAGE': '#EFEFEF', 'ON_FILE_IMAGE': '#2B2B2B',
     },
 }
 DEFAULT_THEME = 'Noite'
@@ -87,10 +131,12 @@ FONTS = ('IBM Plex Sans', 'IBM Plex Mono', 'Segoe UI', 'Arial', 'Verdana', 'Geor
 
 class Color:
     """Cores do tema ativo. Os valores vêm de THEMES (padrão: Noite)."""
-    BG = SURFACE = BORDER = ACCENT = DANGER = WINE = ''
+    BG = SURFACE = BORDER = ACCENT = ACCENT_TEXT = DANGER = WINE = ''
     BG_SUNKEN = SURFACE_HOVER = SURFACE_DISABLED = BORDER_DISABLED = ''
     ACCENT_HOVER = DANGER_BG = ''
     TEXT = TEXT_MUTED = TEXT_DISABLED = TEXT_ON_ACCENT = TEXT_ON_DANGER = ''
+    FILE_PDF = FILE_WORD = FILE_EXCEL = FILE_DEV = FILE_IMAGE = ''
+    ON_FILE_PDF = ON_FILE_WORD = ON_FILE_EXCEL = ON_FILE_DEV = ON_FILE_IMAGE = ''
 
 
 class Type:
@@ -145,16 +191,25 @@ GROUP_GLYPH: dict[str, tuple[str, str]] = {}
 def _group_glyph() -> dict[str, tuple[str, str]]:
     C = Color
     return {
-        'Organizar': (C.ACCENT, C.BG),
-        'Otimizar': (C.BORDER, C.ACCENT),
+        'Organizar': (C.ACCENT, C.TEXT_ON_ACCENT),
+        'Otimizar': (C.BORDER, C.ACCENT_TEXT),
         'PDF para…': (C.DANGER, C.TEXT_ON_DANGER),
-        '…para PDF': (C.WINE, C.ACCENT),
+        '…para PDF': (C.WINE, C.ACCENT_TEXT),
         'Converter': (C.DANGER, C.TEXT_ON_DANGER),
-        'Word': (C.SURFACE_HOVER, C.ACCENT),
-        'Imagens': (C.ACCENT, C.WINE),
-        'Editar': (C.WINE, C.ACCENT),
-        'Segurança': (C.ACCENT, C.WINE),
+        'Word': (C.FILE_WORD, C.ON_FILE_WORD),
+        'Imagens': (C.FILE_IMAGE, C.ON_FILE_IMAGE),
+        'Editar': (C.WINE, C.ACCENT_TEXT),
+        'Segurança': (C.ACCENT, C.TEXT_ON_ACCENT),
         'Em breve': (C.BORDER, C.TEXT_MUTED),
+        # por tipo de arquivo: blocos grandes e grupos de dev
+        'file:pdf': (C.FILE_PDF, C.ON_FILE_PDF),
+        'file:word': (C.FILE_WORD, C.ON_FILE_WORD),
+        'file:excel': (C.FILE_EXCEL, C.ON_FILE_EXCEL),
+        'file:dev': (C.FILE_DEV, C.ON_FILE_DEV),
+        'file:image': (C.FILE_IMAGE, C.ON_FILE_IMAGE),
+        **{g: (C.FILE_DEV, C.ON_FILE_DEV) for g in ('JSON', 'XML', 'YAML', 'TOML', 'Texto', 'Codificar',
+                                                    'Cripto', 'QR e códigos', 'IA', 'Geradores', 'Web')},
+        'CSV': (C.FILE_EXCEL, C.ON_FILE_EXCEL),
     }
 
 

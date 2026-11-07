@@ -27,7 +27,7 @@ def _svg(name: str, color: str) -> bytes:
 
 
 def svg_pixmap(name: str, color: str | None = None, size: int = Size.TOOLBAR_ICON) -> QPixmap:
-    color = color or Color.ACCENT  # resolvido na hora: o tema pode mudar antes da janela
+    color = color or Color.ACCENT_TEXT  # resolvido na hora: o tema pode mudar antes da janela
     pix = QPixmap(size * _SCALE, size * _SCALE)
     pix.setDevicePixelRatio(_SCALE)
     pix.fill(Qt.transparent)
@@ -40,7 +40,7 @@ def svg_pixmap(name: str, color: str | None = None, size: int = Size.TOOLBAR_ICO
 
 
 def svg_icon(name: str, color: str | None = None, size: int = Size.TOOLBAR_ICON) -> QIcon:
-    return _svg_icon(name, color or Color.ACCENT, Color.TEXT_DISABLED, size)
+    return _svg_icon(name, color or Color.ACCENT_TEXT, Color.TEXT_DISABLED, size)
 
 
 @lru_cache(maxsize=None)

@@ -19,6 +19,8 @@ ICON = str(ROOT / 'assets' / 'app.ico')
 # Extensões do Markdown são carregadas pelo nome ('tables', 'fenced_code'),
 # então o PyInstaller não as enxerga sozinho.
 hidden = collect_submodules('markdown.extensions')
+# Faker carrega os provedores e idiomas pelo nome.
+hidden += collect_submodules('faker.providers')
 
 # Peças grandes que o app não usa.
 excluded = [
@@ -36,7 +38,9 @@ a = Analysis(
     binaries=[],
     datas=[(str(ROOT / 'assets'), 'assets'),
            (str(ROOT / 'scripts' / 'setup_printer.ps1'), 'scripts'),
-           *collect_data_files('docx'), *collect_data_files('docxcompose')],
+           *collect_data_files('docx'), *collect_data_files('docxcompose'),
+           *collect_data_files('faker'), *collect_data_files('zxcvbn'),
+           *collect_data_files('jsonschema_specifications'), *collect_data_files('barcode')],
     hiddenimports=hidden,
     excludes=excluded,
     noarchive=False,

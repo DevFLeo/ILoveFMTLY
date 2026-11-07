@@ -25,6 +25,7 @@ from core.ranges import parse_ranges
 from core.workspace import Workspace
 from ui import dialogs
 from ui.crop_dialog import CropDialog
+from ui.dev_dialog import DevDialog
 from ui.video_gif_dialog import VideoGifDialog
 from ui.hub import DropLayer, HubPage, SimpleHome, category_page
 from ui.pdf_dialogs import FormsDialog, SignDialog
@@ -352,6 +353,9 @@ class MainWindow(QMainWindow):
         if not self.available(tool):
             return
         self.layer.close_layer()
+        if tool.mode == 'dev':  # ferramentas de dev: abrem direto, arquivo é opcional
+            self._tool_dev(tool, [Path(f) for f in files or []])
+            return
         if files is None:
             files = self._pick_files(tool)
             if not files:
@@ -368,6 +372,19 @@ class MainWindow(QMainWindow):
             self._tool_dialog(tool, files[0])
         else:
             self._tool_convert(tool, files)
+
+    def _tool_dev(self, tool: Tool, files: list[Path]):
+        text, path = '', None
+        if files:
+            if tool.dev_input == 'file':
+                path = files[0]
+            else:
+                try:
+                    text = files[0].read_text(encoding='utf-8', errors='replace')
+                except OSError as exc:
+                    dialogs.error(self, tool.title, str(exc))
+                    return
+        DevDialog(self, tool, text, path).exec()
 
     def _pick_files(self, tool: Tool) -> list[Path]:
         if tool.multi:
