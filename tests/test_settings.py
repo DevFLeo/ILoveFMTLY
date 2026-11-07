@@ -5,7 +5,7 @@ from core.settings import Settings
 
 def test_missing_file_gives_defaults(tmp_path):
     s = Settings.load(tmp_path / 'config.json')
-    assert s.mode == 'simple' and s.theme == 'Noite' and not s.registered
+    assert s.mode == 'simple' and s.theme == 'Padrão escuro' and not s.registered
 
 
 def test_save_and_load_roundtrip(tmp_path):

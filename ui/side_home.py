@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (QButtonGroup, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget)
 
-from ui.hub import ToolCard, _availability, _fold, ghost_button, make_glyph
+from ui.hub import ToolCard, _availability, _fold, add_easter_egg, ghost_button, make_glyph
 from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.theme import Color, Size, Space
@@ -95,6 +95,7 @@ class SideHome(QWidget):
         self.search = QLineEdit(placeholderText='Buscar ferramenta…')
         self.search.setObjectName('sideSearch')
         self.search.setClearButtonEnabled(True)
+        add_easter_egg(self.search)
         self.search.setFixedWidth(280)
         self.search.textChanged.connect(lambda _: self.refresh())
         self.toggle = ghost_button('Trocar para detalhado', 'arrow-left-right', self.mode_clicked.emit,

@@ -115,3 +115,11 @@ def test_layout_switch_in_settings(window, settings, monkeypatch):
     assert not isinstance(window.home, SideHome)
     assert window.stack.currentWidget() is window.home
     assert Settings.load(settings.path).layout == 'blocks'
+
+
+def test_claude_easter_egg_in_search(window):
+    action = window.home.search.clawd
+    assert not action.icon().isNull()
+    first = action.toolTip()
+    action.trigger()
+    assert action.toolTip() != first and window.home.search.placeholderText() == action.toolTip()

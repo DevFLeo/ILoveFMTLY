@@ -152,10 +152,11 @@ def test_apply_appearance_and_back():
         assert theme.Color.BG == theme.THEMES['Claro']['BG']
         assert theme.Type.SANS == 'Arial' and theme.Type.BODY > 10
         assert theme.GROUP_GLYPH['Organizar'][0] == theme.THEMES['Claro']['ACCENT']
-        assert theme.apply_appearance('xyz', 'Comic', 'Gigante') == ('Noite', 'IBM Plex Sans', 'Normal')
+        assert theme.apply_appearance('xyz', 'Comic', 'Gigante') == ('Padrão escuro', 'IBM Plex Sans', 'Normal')
+        assert theme.apply_appearance('Noite')[0] == 'Tema Claude'  # nome antigo
     finally:
         theme.apply_appearance()
-    assert theme.Type.BODY == 10 and theme.Color.BG == theme.THEMES['Noite']['BG']
+    assert theme.Type.BODY == 10 and theme.Color.BG == theme.THEMES['Padrão escuro']['BG']
 
 
 # --- assinar, formulário, tarja ----------------------------------------------

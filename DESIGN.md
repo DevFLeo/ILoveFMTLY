@@ -33,7 +33,14 @@ sobre a escala acima (`TEXT_SIZES`). As alturas dos blocos crescem junto.
 
 Cada tema em `THEMES` (`ui/theme.py`) define todos os tokens de `Color`; trocar ou
 criar tema é editar só esse dicionário (`test_themes_complete` cobra as chaves).
-Temas: **Noite** (padrão, tabela abaixo), **Claro** e **Alto contraste**. Tema, fonte e
+Temas: **Padrão escuro** e **Padrão claro** (padrão; Medium Slate Blue `#6666FF`, Periwinkle,
+Columbia Blue, Rich Black `#0C0C16`, Celadon), **Tema Claude** (o antigo Noite, em tons de
+entardecer; a tabela abaixo é a paleta original dele), **Umbra & Dreamless Sleep**, **Soft Spectrum**,
+**Soft Ambar**, **Claro**, **Alto contraste** e **Amarelo**. `THEME_ALIASES` leva nomes antigos
+salvos ("Noite") ao tema novo.
+
+Easter egg: o bichinho do Claude (pixel art, `assets/icons/clawd.svg`) fica dentro da busca;
+clicar nele troca a dica. Tema, fonte e
 tamanho valem ao reabrir o app (`apply_appearance()` roda antes da janela existir).
 Sem gradiente. Sem cor fora do tema. Exceção: `INK`/`PAPER` da assinatura, que vão para
 o PDF e não mudam com o tema.
@@ -82,6 +89,11 @@ A folha com dobra vermelha, olhos, bochechas e um coração (o "I love").
 `assets/logo.png` (1024 px) e `assets/app.ico` (16 a 256 px, ícone do .exe e da janela)
 saem de `scripts/mascote.py`; para mudar o desenho, edite o script e rode de novo.
 No hub aparece com 56 px (`Size.LOGO`) ao lado do título.
+
+Mascotes extras (Configurações › Mascote): raposa, coruja, tartaruga e castor, no mesmo estilo
+(quadrado `BG` com borda `BORDER`, figura chapada, coração `DANGER`), gerados por `scripts/mascotes.py`
+em `assets/mascotes/`. Trocar o mascote muda na hora o ícone da janela, da barra de tarefas, da bandeja,
+dos atalhos (área de trabalho, menu Iniciar, fixado na barra) e o logo do topo (`core/mascot.py`).
 
 ## Cor por tipo de arquivo
 

@@ -6,16 +6,18 @@ rótulos de seção em Mono, uma ação principal por diálogo.
 
 import unicodedata
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout,
                                QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton,
                                QVBoxLayout)
 
+from core import mascot
 from core.settings import Settings
 from ui.hub import Clickable, make_glyph
 from ui.icons import svg_icon
 from ui.style import set_prop
-from ui.theme import FONTS, TEXT_SIZES, THEMES, Size, Space, glyph_for
+from ui.theme import FONTS, TEXT_SIZES, THEME_ALIASES, THEMES, Size, Space, glyph_for
 from ui.tools import BY_ID, GROUPS, PROFILE_BY_ID, PROFILES, TOOLS, Profile
 
 MODE_LABELS = {'simple': 'Simples', 'detailed': 'Detalhado (todas as ferramentas)'}
@@ -174,9 +176,13 @@ class SettingsDialog(QDialog):
             box.setCurrentIndex(max(0, box.findData(current)))
             return box
 
-        self.theme = combo([(t, t) for t in THEMES], settings.theme)
+        self.theme = combo([(t, t) for t in THEMES], THEME_ALIASES.get(settings.theme, settings.theme))
         self.font = combo([(f, f) for f in FONTS], settings.font)
         self.text_size = combo([(s, s) for s in TEXT_SIZES], settings.text_size)
+        self.mascot = combo([(m, mascot.LABELS[m]) for m in mascot.MASCOTS], settings.mascot)
+        for i, m in enumerate(mascot.MASCOTS):  # cada opção mostra o próprio mascote
+            self.mascot.setItemIcon(i, QIcon(str(mascot.image_file(m))))
+        self.mascot.setIconSize(QSize(28, 28))
         self.mode = combo(list(MODE_LABELS.items()), settings.mode)
         self.layout_box = combo(list(LAYOUT_LABELS.items()), settings.layout)
         self.name = QLineEdit(settings.name, placeholderText='ex.: Ana')
@@ -191,7 +197,8 @@ class SettingsDialog(QDialog):
                 f.addRow(label, widget)
             return f
 
-        note = QLabel('Tema, fonte e tamanho do texto valem ao reabrir o app.')
+        note = QLabel('Tema, fonte e tamanho do texto valem ao reabrir o app. O mascote muda na hora '
+                      '(janela, barra de tarefas e atalhos).')
         note.setProperty('tone', 'muted')
         where = QLabel(f'Salvo em: {settings.path}' if settings.path else 'Não salvo em arquivo.')
         where.setProperty('tone', 'muted')
@@ -215,7 +222,7 @@ class SettingsDialog(QDialog):
         layout.setSpacing(Space.SM)
         layout.addWidget(_section('Aparência'))
         layout.addLayout(form(('Tema', self.theme), ('Fonte', self.font),
-                              ('Tamanho do texto', self.text_size)))
+                              ('Tamanho do texto', self.text_size), ('Mascote', self.mascot)))
         layout.addWidget(note)
         layout.addSpacing(Space.XL)
         layout.addWidget(_section('Tela inicial'))
@@ -228,7 +235,7 @@ class SettingsDialog(QDialog):
         layout.addSpacing(Space.SM)
         layout.addLayout(buttons)
         self.setMinimumWidth(480)
-        self.appearance_changed = False
+        self.appearance_changed = self.mascot_changed = False
 
     def accept(self):
         s = self.settings
@@ -240,6 +247,9 @@ class SettingsDialog(QDialog):
         apply_profile(s, self.profile.currentData())
         s.welcomed = 'sim'
         self.appearance_changed = (s.theme, s.font, s.text_size) != before
+        new_mascot = self.mascot.currentData()
+        self.mascot_changed = new_mascot != s.mascot
+        s.mascot = new_mascot
         super().accept()
 
 

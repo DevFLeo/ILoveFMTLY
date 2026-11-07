@@ -46,9 +46,10 @@ class Settings:
     profile: str = ''           # id do perfil (ui/tools.PROFILES); vazio = sem cadastro
     mode: str = 'simple'        # tela inicial: 'simple' | 'detailed' (todas as ferramentas)
     layout: str = 'sidebar'     # tela simples: 'sidebar' (barra lateral) | 'blocks' (blocos grandes)
-    theme: str = 'Noite'        # nome em ui/theme.THEMES
+    theme: str = 'Padrão escuro'  # nome em ui/theme.THEMES
     font: str = 'IBM Plex Sans'
     text_size: str = 'Normal'   # nome em ui/theme.TEXT_SIZES
+    mascot: str = 'folha'       # ícone do app (core/mascot.MASCOTS)
     welcomed: str = ''          # 'sim' depois que o cadastro já foi mostrado uma vez
     pinned: list[str] = field(default_factory=list)  # perfil Personalizado: cards fixados
     path: Path | None = field(default=None, repr=False, compare=False)

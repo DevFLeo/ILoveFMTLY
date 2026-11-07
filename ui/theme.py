@@ -12,32 +12,185 @@ from core.paths import assets
 
 # Cada tema tem exatamente estas chaves (teste test_themes_complete).
 THEMES: dict[str, dict[str, str]] = {
-    'Noite': {
-        # paleta base: #181A2F #242E49 #37415C #FDA481 #B4182D #54162B
-        'BG': '#181A2F',               # fundo da janela
-        'SURFACE': '#242E49',          # cartões, barras, painéis
-        'BORDER': '#37415C',           # bordas, campos, hover neutro
-        'ACCENT': '#FDA481',           # destaque, foco, ação principal
-        'ACCENT_TEXT': '#FDA481',   # destaque usado como texto/ícone
-        'DANGER': '#B4182D',           # perigo e erro (nunca seleção)
-        'WINE': '#54162B',             # seleção, faixas, detalhes
-        'BG_SUNKEN': '#11132A',        # área de leitura do visualizador
-        'SURFACE_HOVER': '#2A3554',    # cartão sob o mouse
-        'SURFACE_DISABLED': '#1E2238',  # cartão desativado
-        'BORDER_DISABLED': '#262C45',
-        'ACCENT_HOVER': '#FFB898',
-        'DANGER_BG': '#2A1324',        # fundo de campo com erro
-        'TEXT': '#F3F4F8',
-        'TEXT_MUTED': '#AEB4C8',
-        'TEXT_DISABLED': '#6B7390',
-        'TEXT_ON_ACCENT': '#181A2F',
-        'TEXT_ON_DANGER': '#F3F4F8',
-        # cor por tipo de arquivo (fundo, símbolo)
-        'FILE_PDF': '#B4182D', 'ON_FILE_PDF': '#F3F4F8',       # vermelho
-        'FILE_WORD': '#5AAFE0', 'ON_FILE_WORD': '#0C1E2E',     # azul ciano suave
-        'FILE_EXCEL': '#21A366', 'ON_FILE_EXCEL': '#FFFFFF',   # verde Excel
-        'FILE_DEV': '#8A93A8', 'ON_FILE_DEV': '#14172A',       # cinza visível
-        'FILE_IMAGE': '#F3F4F8', 'ON_FILE_IMAGE': '#181A2F',   # branco
+    'Padrão escuro': {
+        'BG': '#0C0C16',
+        'SURFACE': '#16162A',
+        'BORDER': '#2C2C4A',
+        'ACCENT': '#6666FF',
+        'ACCENT_TEXT': '#B8BAFF',
+        'DANGER': '#E5484D',
+        'WINE': '#24245A',
+        'BG_SUNKEN': '#08080F',
+        'SURFACE_HOVER': '#1E1E3A',
+        'SURFACE_DISABLED': '#121222',
+        'BORDER_DISABLED': '#1C1C30',
+        'ACCENT_HOVER': '#8080FF',
+        'DANGER_BG': '#2A1220',
+        'TEXT': '#EEF0FF',
+        'TEXT_MUTED': '#A9ABD6',
+        'TEXT_DISABLED': '#5C5E85',
+        'TEXT_ON_ACCENT': '#FFFFFF',
+        'TEXT_ON_DANGER': '#FFFFFF',
+        'FILE_PDF': '#E5484D',
+        'ON_FILE_PDF': '#FFFFFF',
+        'FILE_WORD': '#C9E8FF',
+        'ON_FILE_WORD': '#0C0C16',
+        'FILE_EXCEL': '#B9F0D7',
+        'ON_FILE_EXCEL': '#0C0C16',
+        'FILE_DEV': '#8A8CB8',
+        'ON_FILE_DEV': '#0C0C16',
+        'FILE_IMAGE': '#EEF0FF',
+        'ON_FILE_IMAGE': '#0C0C16',
+    },
+    'Padrão claro': {
+        'BG': '#F4F5FF',
+        'SURFACE': '#FFFFFF',
+        'BORDER': '#D6D8F5',
+        'ACCENT': '#6666FF',
+        'ACCENT_TEXT': '#4A4AE0',
+        'DANGER': '#C62828',
+        'WINE': '#E3E4FF',
+        'BG_SUNKEN': '#E9EBFA',
+        'SURFACE_HOVER': '#F0F1FF',
+        'SURFACE_DISABLED': '#ECEDF7',
+        'BORDER_DISABLED': '#E3E4F2',
+        'ACCENT_HOVER': '#7A7AFF',
+        'DANGER_BG': '#FDE4E4',
+        'TEXT': '#0C0C16',
+        'TEXT_MUTED': '#4E5070',
+        'TEXT_DISABLED': '#A3A5C2',
+        'TEXT_ON_ACCENT': '#FFFFFF',
+        'TEXT_ON_DANGER': '#FFFFFF',
+        'FILE_PDF': '#C62828',
+        'ON_FILE_PDF': '#FFFFFF',
+        'FILE_WORD': '#4A9BD9',
+        'ON_FILE_WORD': '#FFFFFF',
+        'FILE_EXCEL': '#2E9E6E',
+        'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_DEV': '#6B6E99',
+        'ON_FILE_DEV': '#FFFFFF',
+        'FILE_IMAGE': '#E3E4FF',
+        'ON_FILE_IMAGE': '#0C0C16',
+    },
+    'Tema Claude': {
+        'BG': '#1E1A2B',
+        'SURFACE': '#2B2438',
+        'BORDER': '#453A55',
+        'ACCENT': '#E0875F',
+        'ACCENT_TEXT': '#F2A27C',
+        'DANGER': '#C2362F',
+        'WINE': '#4A2233',
+        'BG_SUNKEN': '#17141F',
+        'SURFACE_HOVER': '#332B42',
+        'SURFACE_DISABLED': '#241F30',
+        'BORDER_DISABLED': '#2E2738',
+        'ACCENT_HOVER': '#F0A07A',
+        'DANGER_BG': '#33161F',
+        'TEXT': '#F5EEE6',
+        'TEXT_MUTED': '#BFB2B8',
+        'TEXT_DISABLED': '#76687E',
+        'TEXT_ON_ACCENT': '#1E1A2B',
+        'TEXT_ON_DANGER': '#F5EEE6',
+        'FILE_PDF': '#C2362F',
+        'ON_FILE_PDF': '#F5EEE6',
+        'FILE_WORD': '#6FB0DA',
+        'ON_FILE_WORD': '#1E1A2B',
+        'FILE_EXCEL': '#3DA874',
+        'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_DEV': '#988CA6',
+        'ON_FILE_DEV': '#1E1A2B',
+        'FILE_IMAGE': '#F5EEE6',
+        'ON_FILE_IMAGE': '#1E1A2B',
+    },
+    'Umbra & Dreamless Sleep': {
+        'BG': '#101011',
+        'SURFACE': '#201F20',
+        'BORDER': '#565257',
+        'ACCENT': '#E5AD14',
+        'ACCENT_TEXT': '#E5AD14',
+        'DANGER': '#C0392B',
+        'WINE': '#3A2A08',
+        'BG_SUNKEN': '#0A0A0B',
+        'SURFACE_HOVER': '#2A292A',
+        'SURFACE_DISABLED': '#18181A',
+        'BORDER_DISABLED': '#2E2C2F',
+        'ACCENT_HOVER': '#F0BE3A',
+        'DANGER_BG': '#2A1210',
+        'TEXT': '#F2F0EE',
+        'TEXT_MUTED': '#A39DA0',
+        'TEXT_DISABLED': '#565257',
+        'TEXT_ON_ACCENT': '#101011',
+        'TEXT_ON_DANGER': '#FFFFFF',
+        'FILE_PDF': '#C0392B',
+        'ON_FILE_PDF': '#FFFFFF',
+        'FILE_WORD': '#5AAFE0',
+        'ON_FILE_WORD': '#101011',
+        'FILE_EXCEL': '#21A366',
+        'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_DEV': '#807A7D',
+        'ON_FILE_DEV': '#101011',
+        'FILE_IMAGE': '#F2F0EE',
+        'ON_FILE_IMAGE': '#101011',
+    },
+    'Soft Spectrum': {
+        'BG': '#171213',
+        'SURFACE': '#242323',
+        'BORDER': '#3D3837',
+        'ACCENT': '#A11A17',
+        'ACCENT_TEXT': '#E0605C',
+        'DANGER': '#FF6B5E',
+        'WINE': '#3A1514',
+        'BG_SUNKEN': '#100C0D',
+        'SURFACE_HOVER': '#2E2C2C',
+        'SURFACE_DISABLED': '#1D1A1A',
+        'BORDER_DISABLED': '#2C2828',
+        'ACCENT_HOVER': '#B8241F',
+        'DANGER_BG': '#2A1212',
+        'TEXT': '#D2CEC7',
+        'TEXT_MUTED': '#A29D96',
+        'TEXT_DISABLED': '#5E5856',
+        'TEXT_ON_ACCENT': '#F4F1EC',
+        'TEXT_ON_DANGER': '#171213',
+        'FILE_PDF': '#A11A17',
+        'ON_FILE_PDF': '#F4F1EC',
+        'FILE_WORD': '#5AAFE0',
+        'ON_FILE_WORD': '#171213',
+        'FILE_EXCEL': '#21A366',
+        'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_DEV': '#8A8480',
+        'ON_FILE_DEV': '#171213',
+        'FILE_IMAGE': '#D2CEC7',
+        'ON_FILE_IMAGE': '#171213',
+    },
+    'Soft Ambar': {
+        'BG': '#1A0D06',
+        'SURFACE': '#2A160C',
+        'BORDER': '#7A2E0B',
+        'ACCENT': '#FFB45C',
+        'ACCENT_TEXT': '#FFB45C',
+        'DANGER': '#F2552C',
+        'WINE': '#4A2410',
+        'BG_SUNKEN': '#120804',
+        'SURFACE_HOVER': '#361D10',
+        'SURFACE_DISABLED': '#22120A',
+        'BORDER_DISABLED': '#3D1E0E',
+        'ACCENT_HOVER': '#FFD9A3',
+        'DANGER_BG': '#3A140A',
+        'TEXT': '#FFD9A3',
+        'TEXT_MUTED': '#D9A877',
+        'TEXT_DISABLED': '#7A5A40',
+        'TEXT_ON_ACCENT': '#1A0D06',
+        'TEXT_ON_DANGER': '#1A0D06',
+        'FILE_PDF': '#D9412B',
+        'ON_FILE_PDF': '#FFFFFF',
+        'FILE_WORD': '#5AAFE0',
+        'ON_FILE_WORD': '#1A0D06',
+        'FILE_EXCEL': '#3DAA6A',
+        'ON_FILE_EXCEL': '#1A0D06',
+        'FILE_DEV': '#B08A6A',
+        'ON_FILE_DEV': '#1A0D06',
+        'FILE_IMAGE': '#FFD9A3',
+        'ON_FILE_IMAGE': '#1A0D06',
     },
     'Claro': {
         'BG': '#F6F3EF',
@@ -115,7 +268,9 @@ THEMES: dict[str, dict[str, str]] = {
         'FILE_IMAGE': '#EFEFEF', 'ON_FILE_IMAGE': '#2B2B2B',
     },
 }
-DEFAULT_THEME = 'Noite'
+DEFAULT_THEME = 'Padrão escuro'
+# nomes antigos que podem estar num config.json salvo
+THEME_ALIASES = {'Noite': 'Tema Claude'}
 
 # Assinatura: tinta e papel fixos (vão para o PDF, não mudam com o tema).
 INK = '#1A2A6C'
@@ -221,6 +376,7 @@ def apply_appearance(theme: str = DEFAULT_THEME, font: str = Type.SANS,
                      text_size: str = 'Normal') -> tuple[str, str, str]:
     """Aplica tema, fonte e tamanho do texto aos tokens. Valores desconhecidos
     viram o padrão. Devolve o que foi de fato aplicado."""
+    theme = THEME_ALIASES.get(theme, theme)
     theme = theme if theme in THEMES else DEFAULT_THEME
     for key, value in THEMES[theme].items():
         setattr(Color, key, value)

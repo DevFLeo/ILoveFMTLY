@@ -183,11 +183,14 @@ class CardGrid(QWidget):
             card.show()
 
 
+LOGO = {'path': ASSETS / 'logo.png'}  # trocado pelo mascote escolhido (MainWindow)
+
+
 def _logo() -> QLabel:
     label = QLabel()
     label.setObjectName('hubLogo')
     label.setAccessibleName('ILoveFMTLY')
-    logo = QPixmap(str(ASSETS / 'logo.png'))
+    logo = QPixmap(str(LOGO['path']))
     if not logo.isNull():
         dpr = label.devicePixelRatioF()
         logo = logo.scaled(round(Size.LOGO * dpr), round(Size.LOGO * dpr), Qt.KeepAspectRatio,
@@ -205,6 +208,27 @@ def ghost_button(text: str, icon: str, slot, name: str = '') -> QPushButton:
         btn.setObjectName(name)
     btn.clicked.connect(slot)
     return btn
+
+
+EASTER_EGG_TIPS = ('Psiu… o Claude está de olho na sua busca.', 'Dica do Claude: tente "json", "senha" ou "gif".',
+                   'O Claude acha que você merece um café.', 'Tudo offline. Nem o Claude vê seus arquivos.')
+
+
+def add_easter_egg(search: QLineEdit) -> None:
+    """Easter egg: o bichinho do Claude dentro da busca. Clicar nele troca a dica."""
+    action = search.addAction(svg_icon('clawd', size=18), QLineEdit.LeadingPosition)
+    action.setObjectName('clawd')
+    action.setToolTip(EASTER_EGG_TIPS[0])
+    state = {'n': 0}
+
+    def poke():
+        state['n'] = (state['n'] + 1) % len(EASTER_EGG_TIPS)
+        tip = EASTER_EGG_TIPS[state['n']]
+        action.setToolTip(tip)
+        search.setPlaceholderText(tip)
+        search.setFocus()
+    action.triggered.connect(poke)
+    search.clawd = action
 
 
 class _Page(QScrollArea):
@@ -285,6 +309,7 @@ class HubPage(_Page):
         self.search = QLineEdit(placeholderText='Buscar ferramenta…  (ex.: gif, word, senha, comprimir)')
         self.search.setObjectName('hubSearch')
         self.search.setClearButtonEnabled(True)
+        add_easter_egg(self.search)
         self.search.textChanged.connect(self.filter)
         self.empty = QLabel('Nenhuma ferramenta encontrada.')
         self.empty.setProperty('tone', 'muted')

@@ -15,6 +15,7 @@ from PySide6.QtCore import QTimer  # noqa: E402
 from PySide6.QtGui import QIcon  # noqa: E402
 from PySide6.QtWidgets import QApplication  # noqa: E402
 
+from core import mascot  # noqa: E402
 from core.settings import Settings  # noqa: E402
 from core.workspace import Workspace  # noqa: E402
 from ui.main_window import MainWindow  # noqa: E402
@@ -23,6 +24,7 @@ from ui.theme import ASSETS, apply_appearance  # noqa: E402
 
 
 def main() -> int:
+    mascot.set_app_id()  # antes da primeira janela: agrupa e fixa o app na barra de tarefas
     app = QApplication(sys.argv)
     app.setApplicationName('ILoveFMTLY')
     app.setWindowIcon(QIcon(str(ASSETS / 'app.ico')))

@@ -31,6 +31,9 @@ from ui.hub import DropLayer, HubPage, SimpleHome, category_page
 from ui.pdf_dialogs import FormsDialog, SignDialog
 from ui.profile_dialog import PinDialog, SettingsDialog, WelcomeDialog
 from ui.side_home import SideHome
+from ui import hub as hub_module
+from ui.mascot_ui import TaskNotifier, apply_mascot
+from core import mascot
 from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.options_panel import OptionsPanel
@@ -102,6 +105,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('ILoveFMTLY')
         self.resize(1280, 820)
         self.setAcceptDrops(True)
+        # mascote: ícone da janela/barra/bandeja; atalhos do Windows só no app de verdade
+        self.settings.mascot = mascot.valid(self.settings.mascot)
+        hub_module.LOGO['path'] = mascot.image_file(self.settings.mascot)
+        icon = apply_mascot(self.settings.mascot, self, shortcuts=self.settings.path is not None)
+        self.notifier = TaskNotifier(self, icon)
 
         # --- editor ---------------------------------------------------------
         self.grid = ThumbnailGrid()
@@ -301,6 +309,12 @@ class MainWindow(QMainWindow):
         if dialog.exec() != SettingsDialog.Accepted:
             return
         self._save_settings()
+        if dialog.mascot_changed:  # vale na hora: janela, barra, bandeja, atalhos e o logo do topo
+            hub_module.LOGO['path'] = mascot.image_file(self.settings.mascot)
+            apply_mascot(self.settings.mascot, self, self.notifier.tray,
+                         shortcuts=self.settings.path is not None)
+            if hasattr(self.hub, 'logo'):
+                self.hub.logo.setPixmap(hub_module._logo().pixmap())
         self.rebuild_home()
         if self.on_hub():
             self.show_hub()
@@ -642,9 +656,11 @@ class MainWindow(QMainWindow):
 
     def _run(self, text, fn, *args, done_msg=None, on_done=None):
         self._busy(True, text)
+        started, task = self.notifier.start(), text.rstrip('…').strip()
 
         def ok(result):
             self._busy(False)
+            self.notifier.finished(task, started)  # aviso na bandeja se demorou e você saiu
             if on_done:
                 on_done(result)
             if done_msg:
@@ -652,6 +668,7 @@ class MainWindow(QMainWindow):
 
         def fail(exc):
             self._busy(False)
+            self.notifier.finished(task, started, exc)
             dialogs.error(self, 'Erro', str(exc))
 
         run_in_thread(fn, *args, on_done=ok, on_error=fail)
