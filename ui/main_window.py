@@ -13,7 +13,8 @@ from PySide6.QtWidgets import (QFileDialog, QInputDialog, QLabel, QMainWindow,
 
 from core import importer, printer
 from core.document import Document
-from core import convert
+from core import convert, video
+from core.video import VideoError
 from core.engines import mupdf, office, qpdf
 from core.export import export, split
 from core.history import History
@@ -21,6 +22,7 @@ from core.ranges import parse_ranges
 from core.workspace import Workspace
 from ui import dialogs
 from ui.crop_dialog import CropDialog
+from ui.video_gif_dialog import VideoGifDialog
 from ui.hub import DropLayer, HubPage
 from ui.icons import svg_icon
 from ui.style import set_prop
@@ -293,22 +295,23 @@ class MainWindow(QMainWindow):
             preset()
 
     def _tool_dialog(self, tool: Tool, src: Path):
-        """Recortar / borrar: diálogo próprio, depois o arquivo de destino."""
+        """Recortar, borrar, vídeo para GIF: diálogo próprio, depois o arquivo de destino."""
+        dialog = VideoGifDialog if tool.dialog == 'video' else CropDialog
         try:
-            values = CropDialog.ask(self, src, tool.dialog)
-        except ValueError as exc:
+            values = dialog.ask(self, src, tool.dialog)
+        except (ValueError, VideoError) as exc:
             dialogs.error(self, tool.title, str(exc))
             return
         if values is None:
             return
-        default = str(src.with_name(src.stem + tool.out_suffix + src.suffix.lower()))
-        out, _ = QFileDialog.getSaveFileName(self, tool.title, default,
-                                             f'{src.suffix[1:].upper()} (*{src.suffix.lower()})')
+        ext = video.FORMATS[values['fmt']] if 'fmt' in values else src.suffix.lower()
+        default = str(src.with_name(src.stem + tool.out_suffix + ext))
+        out, _ = QFileDialog.getSaveFileName(self, tool.title, default, f'{ext[1:].upper()} (*{ext})')
         if not out:
             return
         target = Path(out)
-        if not target.suffix:
-            target = target.with_suffix(src.suffix.lower())
+        if target.suffix.lower() != ext:
+            target = target.with_name(target.name + ext)
         if target.resolve() == src.resolve():
             dialogs.error(self, tool.title, 'Escolha outro nome: o arquivo original não é sobrescrito.')
             return

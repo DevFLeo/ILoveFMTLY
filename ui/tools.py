@@ -15,6 +15,7 @@ from core.convert import (EBOOK_EXTS, EXCEL_EXTS, IMAGE_FORMATS, POWERPOINT_EXTS
                           RASTER_EXTS, WEB_EXTS)
 from core.docx_tools import EXPORT_FORMATS
 from core.images import ANIM_FORMATS, POSITIONS, ROTATE_ACTIONS
+from core.video import VIDEO_EXTS
 from core.engines.word import WORD_INPUT_EXTS
 from core.importer import IMAGE_EXTS
 
@@ -28,6 +29,7 @@ WEB = frozenset(WEB_EXTS)
 EBOOK = frozenset(EBOOK_EXTS)
 GIF = frozenset({'.gif'})
 ANIMATED = frozenset({'.gif', '.webp'})
+VIDEO = frozenset(VIDEO_EXTS)
 DOCX = frozenset({'.docx', '.docm', '.dotx'})
 
 GROUPS = ['Organizar', 'Otimizar', 'PDF para…', '…para PDF', 'Word', 'Imagens', 'Editar',
@@ -65,7 +67,7 @@ class Tool:
     fn: str = ''               # função em core.convert, ou 'modulo.funcao' em core/
     ext: str = ''              # extensão de saída no modo file
     out_suffix: str = ''       # sufixo do nome sugerido no modo file/dialog (ex.: '_juntado')
-    dialog: str = ''           # modo dialog: 'crop' | 'blur' (ui/crop_dialog.py)
+    dialog: str = ''           # modo dialog: 'crop' | 'blur' | 'video'
     params: tuple = field(default_factory=tuple)
 
     @property
@@ -187,6 +189,8 @@ TOOLS: list[Tool] = [
                  Param('width', 'Largura (0 = original)', 0, min=0, max=4000, suffix=' px'),
                  Param('reverse', 'Inverter', 'Não', options=('Não', 'Sim')),
                  Param('fmt', 'Salvar como', 'GIF', options=tuple(ANIM_FORMATS)))),
+    Tool('video2gif', 'Vídeo para GIF', 'Escolha o trecho com prévia; salva GIF ou WebP animado.',
+         'Imagens', 'video', VIDEO, mode='dialog', dialog='video', fn='video.to_animation'),
     Tool('gif2frames', 'GIF para quadros', 'Cada quadro do GIF vira um PNG.', 'Imagens', 'layers', GIF,
          mode='folder', fn='gif_to_frames'),
 
