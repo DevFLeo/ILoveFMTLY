@@ -9,3 +9,4 @@ pywin32>=306       # conversões com o Office local via COM (Windows)
 # desenvolvimento
 pytest>=8.0
 pytest-qt>=4.4
+pyinstaller>=6.10   # gerar o .exe (scripts/build_exe.ps1)

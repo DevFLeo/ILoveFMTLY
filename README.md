@@ -46,6 +46,14 @@ python -m venv .venv
 
 Também é possível abrir arquivos direto: `.venv\Scripts\python app.py contrato.pdf`.
 
+## Gerar o .exe
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build_exe.ps1
+```
+
+Roda os testes e empacota com PyInstaller. Resultado: `dist\ILoveFMTLY\ILoveFMTLY.exe`; copie a pasta `dist\ILoveFMTLY` inteira para onde quiser. O .exe não precisa de Python instalado. Opções: `-OneFile` gera um único `dist\ILoveFMTLY.exe` (abre mais devagar, pois extrai tudo a cada execução); `-SkipTests` pula os testes.
+
 ## Impressora virtual
 
 Execute uma vez, como administrador:
