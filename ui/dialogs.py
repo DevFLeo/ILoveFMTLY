@@ -1,6 +1,7 @@
 """Diálogos pequenos: senha, metadados, mensagens."""
 
-from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
+from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
+                               QHBoxLayout,
                                QHeaderView, QInputDialog, QLabel, QLineEdit, QMessageBox,
                                QPushButton, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout)
 
@@ -36,7 +37,18 @@ class ParamDialog(QDialog):
         form.setHorizontalSpacing(Space.LG)
         form.setVerticalSpacing(Space.MD)
         for p in params:
-            if isinstance(p.default, str) and not p.options:
+            row = None
+            if p.file_filter:
+                field = QLineEdit(p.default)
+                field.setPlaceholderText(p.hint or 'Nenhum arquivo')
+                pick = QPushButton('Escolher…')
+                pick.setProperty('variant', 'ghost')
+                pick.clicked.connect(lambda _=False, f=field, p=p: self._pick(f, p))
+                row = QHBoxLayout()
+                row.setSpacing(Space.SM)
+                row.addWidget(field, 1)
+                row.addWidget(pick)
+            elif isinstance(p.default, str) and not p.options:
                 field = QLineEdit(p.default)
                 field.setPlaceholderText(p.hint)
             elif p.options:
@@ -49,7 +61,7 @@ class ParamDialog(QDialog):
                 field.setValue(int(p.default))
                 field.setSuffix(p.suffix)
             self.fields[p.key] = field
-            form.addRow(p.label, field)
+            form.addRow(p.label, row if row is not None else field)
         cancel = QPushButton('Cancelar', clicked=self.reject)
         cancel.setProperty('variant', 'ghost')
         ok = QPushButton('Continuar', clicked=self.accept)
@@ -66,6 +78,11 @@ class ParamDialog(QDialog):
         layout.addLayout(form)
         layout.addSpacing(Space.SM)
         layout.addLayout(buttons)
+
+    def _pick(self, field: QLineEdit, param):
+        chosen, _ = QFileDialog.getOpenFileName(self, param.label, field.text(), param.file_filter)
+        if chosen:
+            field.setText(chosen)
 
     def values(self) -> dict:
         def read(f):

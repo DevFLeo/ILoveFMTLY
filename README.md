@@ -15,7 +15,7 @@ A tela inicial mostra todas as ferramentas como blocos, com busca. Soltar arquiv
 | PDF para… | Word, Excel (tabelas), PowerPoint, imagem (PNG/JPG/WebP/TIFF...), GIF animado, TXT, HTML, SVG, Extrair imagens |
 | …para PDF | Word, Excel, PowerPoint, imagem, HTML/Markdown/TXT, e-book (EPUB, MOBI, FB2, XPS, CBZ, SVG) |
 | Word (sem Office) | Limpar DOCX (autor, comentários, revisões), Localizar e substituir, Juntar DOCX, DOCX para TXT/Markdown/HTML |
-| Imagens | Converter formato, Redimensionar, Comprimir, Criar GIF, GIF para quadros |
+| Imagens | Converter formato, Redimensionar, Comprimir, Recortar, Girar/espelhar, Remover EXIF/GPS, Marca d'água (texto ou logo), Borrar área, Criar GIF, Editar GIF (velocidade, trecho, largura, inverter, WebP), GIF para quadros |
 | Editar | Numerar páginas, Marca d'água, Comparar dois PDFs |
 | Segurança | Proteger, Desbloquear, Remover metadados |
 

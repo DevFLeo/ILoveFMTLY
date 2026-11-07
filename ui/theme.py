@@ -6,8 +6,7 @@ os widgets leem daqui; nenhum outro arquivo deve conter hex ou medidas soltas.
 Paleta base: #181A2F #242E49 #37415C #FDA481 #B4182D #54162B
 """
 
-import sys
-from pathlib import Path
+from core.paths import assets
 
 
 class Color:
@@ -84,12 +83,4 @@ GROUP_GLYPH = {
 }
 
 
-def _base_dir() -> Path:
-    """Raiz do app: a pasta do projeto ou, no .exe do PyInstaller, a pasta extraída."""
-    frozen = getattr(sys, '_MEIPASS', None)
-    if frozen:
-        return Path(frozen)
-    return Path(__file__).resolve().parent.parent
-
-
-ASSETS = _base_dir() / 'assets'
+ASSETS = assets()  # pasta do projeto ou, no .exe, a pasta extraída (core/paths.py)

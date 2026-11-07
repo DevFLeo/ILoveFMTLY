@@ -4,7 +4,8 @@ Cada ferramenta tem um modo:
 - editor:  abre os arquivos no editor de páginas com uma predefinição;
 - to_editor: converte cada arquivo para PDF (core.convert.<fn>) e abre no editor;
 - file:    converte e grava um arquivo escolhido pelo usuário (extensão `ext`);
-- folder:  converte e grava vários arquivos numa pasta escolhida.
+- folder:  converte e grava vários arquivos numa pasta escolhida;
+- dialog:  abre um diálogo próprio (recorte, borrar) e grava um arquivo escolhido.
 """
 
 from dataclasses import dataclass, field
@@ -13,6 +14,7 @@ from pathlib import Path
 from core.convert import (EBOOK_EXTS, EXCEL_EXTS, IMAGE_FORMATS, POWERPOINT_EXTS,
                           RASTER_EXTS, WEB_EXTS)
 from core.docx_tools import EXPORT_FORMATS
+from core.images import ANIM_FORMATS, POSITIONS, ROTATE_ACTIONS
 from core.engines.word import WORD_INPUT_EXTS
 from core.importer import IMAGE_EXTS
 
@@ -25,6 +27,7 @@ POWERPOINT = frozenset(POWERPOINT_EXTS)
 WEB = frozenset(WEB_EXTS)
 EBOOK = frozenset(EBOOK_EXTS)
 GIF = frozenset({'.gif'})
+ANIMATED = frozenset({'.gif', '.webp'})
 DOCX = frozenset({'.docx', '.docm', '.dotx'})
 
 GROUPS = ['Organizar', 'Otimizar', 'PDF para…', '…para PDF', 'Word', 'Imagens', 'Editar',
@@ -43,6 +46,7 @@ class Param:
     max: int = 0
     suffix: str = ''
     hint: str = ''             # texto de exemplo em campos de texto
+    file_filter: str = ''      # campo de arquivo (texto + "Escolher…"), ex.: 'Imagens (*.png)'
 
 
 @dataclass(frozen=True)
@@ -57,10 +61,11 @@ class Tool:
     min_files: int = 1
     soon: bool = False
     needs: str | None = None   # 'word' | 'excel' | 'powerpoint'
-    mode: str = 'editor'       # editor | to_editor | file | folder
+    mode: str = 'editor'       # editor | to_editor | file | folder | dialog
     fn: str = ''               # função em core.convert, ou 'modulo.funcao' em core/
     ext: str = ''              # extensão de saída no modo file
-    out_suffix: str = ''       # sufixo do nome sugerido no modo file (ex.: '_juntado')
+    out_suffix: str = ''       # sufixo do nome sugerido no modo file/dialog (ex.: '_juntado')
+    dialog: str = ''           # modo dialog: 'crop' | 'blur' (ui/crop_dialog.py)
     params: tuple = field(default_factory=tuple)
 
     @property
@@ -155,6 +160,33 @@ TOOLS: list[Tool] = [
     Tool('img2gif', 'Criar GIF', 'Várias imagens viram um GIF animado.', 'Imagens', 'clapperboard', RASTER,
          max_files=0, min_files=2, mode='file', fn='images_to_gif', ext='.gif',
          params=(FRAME, Param('width', 'Largura (0 = original)', 0, min=0, max=4000, suffix=' px'))),
+    Tool('imgcrop', 'Recortar imagem', 'Arraste a área; proporção livre, 1:1, 4:3 ou 16:9.',
+         'Imagens', 'crop', IMAGES, mode='dialog', dialog='crop', fn='images.crop',
+         out_suffix='_recortada'),
+    Tool('imgrotate', 'Girar / espelhar imagem', '90°, 180° ou espelho; GIFs continuam animados.',
+         'Imagens', 'flip-horizontal-2', RASTER, max_files=0, mode='folder', fn='images.rotate',
+         params=(Param('action', 'Ação', 'Girar 90° à direita', options=tuple(ROTATE_ACTIONS)),)),
+    Tool('imgexif', 'Remover EXIF / GPS', 'Tire câmera, local e data das fotos antes de enviar.',
+         'Imagens', 'map-pin-off', RASTER, max_files=0, mode='folder', fn='images.strip_exif'),
+    Tool('imgwatermark', "Marca d'água em imagem", 'Texto ou logo sobre várias imagens.', 'Imagens',
+         'stamp', IMAGES, max_files=0, mode='folder', fn='images.watermark',
+         params=(Param('text', 'Texto', '', hint='ex.: CONFIDENCIAL'),
+                 Param('logo', 'Logo (opcional)', '',
+                       file_filter='Imagens (*.png *.jpg *.jpeg *.webp *.bmp)'),
+                 Param('position', 'Posição', 'Inferior direito', options=POSITIONS),
+                 Param('opacity', 'Opacidade', 50, min=5, max=100, suffix=' %'))),
+    Tool('imgblur', 'Borrar área', 'Pixele rostos, placas ou dados numa parte da imagem.',
+         'Imagens', 'scan-face', IMAGES, mode='dialog', dialog='blur', fn='images.blur_area',
+         out_suffix='_borrada'),
+    Tool('gifedit', 'Editar GIF', 'Velocidade, trecho, largura, inverter; salva GIF ou WebP.',
+         'Imagens', 'sliders-horizontal', ANIMATED, max_files=0, mode='folder',
+         fn='images.edit_gif',
+         params=(Param('speed', 'Velocidade', 100, min=10, max=1000, suffix=' %'),
+                 Param('first', 'Do quadro', 1, min=1, max=100000),
+                 Param('last', 'Até o quadro (0 = fim)', 0, min=0, max=100000),
+                 Param('width', 'Largura (0 = original)', 0, min=0, max=4000, suffix=' px'),
+                 Param('reverse', 'Inverter', 'Não', options=('Não', 'Sim')),
+                 Param('fmt', 'Salvar como', 'GIF', options=tuple(ANIM_FORMATS)))),
     Tool('gif2frames', 'GIF para quadros', 'Cada quadro do GIF vira um PNG.', 'Imagens', 'layers', GIF,
          mode='folder', fn='gif_to_frames'),
 

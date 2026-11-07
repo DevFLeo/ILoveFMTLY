@@ -20,6 +20,7 @@ from core.history import History
 from core.ranges import parse_ranges
 from core.workspace import Workspace
 from ui import dialogs
+from ui.crop_dialog import CropDialog
 from ui.hub import DropLayer, HubPage
 from ui.icons import svg_icon
 from ui.style import set_prop
@@ -253,6 +254,8 @@ class MainWindow(QMainWindow):
             return
         if tool.mode == 'editor':
             self._tool_in_editor(tool, files)
+        elif tool.mode == 'dialog':
+            self._tool_dialog(tool, files[0])
         else:
             self._tool_convert(tool, files)
 
@@ -288,6 +291,29 @@ class MainWindow(QMainWindow):
         }.get(tool.id)
         if preset:
             preset()
+
+    def _tool_dialog(self, tool: Tool, src: Path):
+        """Recortar / borrar: diálogo próprio, depois o arquivo de destino."""
+        try:
+            values = CropDialog.ask(self, src, tool.dialog)
+        except ValueError as exc:
+            dialogs.error(self, tool.title, str(exc))
+            return
+        if values is None:
+            return
+        default = str(src.with_name(src.stem + tool.out_suffix + src.suffix.lower()))
+        out, _ = QFileDialog.getSaveFileName(self, tool.title, default,
+                                             f'{src.suffix[1:].upper()} (*{src.suffix.lower()})')
+        if not out:
+            return
+        target = Path(out)
+        if not target.suffix:
+            target = target.with_suffix(src.suffix.lower())
+        if target.resolve() == src.resolve():
+            dialogs.error(self, tool.title, 'Escolha outro nome: o arquivo original não é sobrescrito.')
+            return
+        self._run(f'{tool.title}…', partial(resolve_fn(tool.fn), src, target, **values),
+                  done_msg=lambda res: f'Arquivo salvo em:\n{res}')
 
     def _tool_convert(self, tool: Tool, files: list[Path]):
         """Ferramentas de conversão: parâmetros, destino e execução em segundo plano."""
