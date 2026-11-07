@@ -5,3 +5,7 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+# preferências e cadastro do usuário (core/settings.py)
+config.json
+config.tmp
