@@ -12,6 +12,7 @@ from pathlib import Path
 
 from core.convert import (EBOOK_EXTS, EXCEL_EXTS, IMAGE_FORMATS, POWERPOINT_EXTS,
                           RASTER_EXTS, WEB_EXTS)
+from core.docx_tools import EXPORT_FORMATS
 from core.engines.word import WORD_INPUT_EXTS
 from core.importer import IMAGE_EXTS
 
@@ -24,8 +25,9 @@ POWERPOINT = frozenset(POWERPOINT_EXTS)
 WEB = frozenset(WEB_EXTS)
 EBOOK = frozenset(EBOOK_EXTS)
 GIF = frozenset({'.gif'})
+DOCX = frozenset({'.docx', '.docm', '.dotx'})
 
-GROUPS = ['Organizar', 'Otimizar', 'PDF para…', '…para PDF', 'Imagens', 'Editar',
+GROUPS = ['Organizar', 'Otimizar', 'PDF para…', '…para PDF', 'Word', 'Imagens', 'Editar',
           'Segurança', 'Em breve']
 
 OFFICE_LABEL = {'word': 'Word', 'excel': 'Excel', 'powerpoint': 'PowerPoint'}
@@ -35,11 +37,12 @@ OFFICE_LABEL = {'word': 'Word', 'excel': 'Excel', 'powerpoint': 'PowerPoint'}
 class Param:
     key: str
     label: str
-    default: object
+    default: object            # str sem options = campo de texto
     options: tuple = ()        # escolha entre opções (texto)
     min: int = 0               # números inteiros
     max: int = 0
     suffix: str = ''
+    hint: str = ''             # texto de exemplo em campos de texto
 
 
 @dataclass(frozen=True)
@@ -55,8 +58,9 @@ class Tool:
     soon: bool = False
     needs: str | None = None   # 'word' | 'excel' | 'powerpoint'
     mode: str = 'editor'       # editor | to_editor | file | folder
-    fn: str = ''               # nome da função em core.convert
+    fn: str = ''               # função em core.convert, ou 'modulo.funcao' em core/
     ext: str = ''              # extensão de saída no modo file
+    out_suffix: str = ''       # sufixo do nome sugerido no modo file (ex.: '_juntado')
     params: tuple = field(default_factory=tuple)
 
     @property
@@ -125,6 +129,21 @@ TOOLS: list[Tool] = [
     Tool('ebook2pdf', 'E-book para PDF', 'EPUB, MOBI, FB2, XPS, CBZ e SVG em PDF.', '…para PDF',
          'book-open', EBOOK, max_files=0, mode='to_editor', fn='ebook_to_pdf'),
 
+    # Word (sem Office)
+    Tool('docxclean', 'Limpar DOCX', 'Tire autor, comentários e revisões antes de enviar.', 'Word',
+         'brush-cleaning', DOCX, max_files=0, mode='folder', fn='docx_tools.clean'),
+    Tool('docxreplace', 'Localizar e substituir', 'Troque um texto em um ou vários DOCX.', 'Word',
+         'replace', DOCX, max_files=0, mode='folder', fn='docx_tools.replace',
+         params=(Param('find', 'Localizar', '', hint='ex.: Contratante'),
+                 Param('replace', 'Substituir por', '', hint='ex.: Locatária'),
+                 Param('match_case', 'Diferenciar maiúsculas', 'Sim', options=('Sim', 'Não')))),
+    Tool('docxmerge', 'Juntar DOCX', 'Vários DOCX viram um, na ordem escolhida.', 'Word', 'files',
+         DOCX, max_files=0, min_files=2, mode='file', fn='docx_tools.merge', ext='.docx',
+         out_suffix='_juntado'),
+    Tool('docx2text', 'DOCX para TXT / Markdown / HTML', 'Texto puro ou web; imagens numa pasta.',
+         'Word', 'file-type', DOCX, max_files=0, mode='folder', fn='docx_tools.export_text',
+         params=(Param('fmt', 'Formato', 'Markdown', options=tuple(EXPORT_FORMATS)),)),
+
     # Imagens
     Tool('imgconvert', 'Converter imagem', 'PNG, JPG, WebP, BMP, TIFF, ICO e GIF.', 'Imagens', 'refresh-cw',
          RASTER, max_files=0, mode='folder', fn='convert_images', params=(FORMAT, QUALITY)),
@@ -144,7 +163,8 @@ TOOLS: list[Tool] = [
     Tool('watermark', "Marca d'água", 'Carimbe um texto em diagonal sobre as páginas.',
          'Editar', 'stamp', PDF),
     Tool('compare', 'Comparar PDF', 'Relatório com as diferenças de texto entre dois PDFs.',
-         'Editar', 'git-compare-arrows', PDF, min_files=2, max_files=2, mode='file', fn='compare_pdfs', ext='.html'),
+         'Editar', 'git-compare-arrows', PDF, min_files=2, max_files=2, mode='file', fn='compare_pdfs',
+         ext='.html', out_suffix='_comparacao'),
 
     # Segurança
     Tool('protect', 'Proteger PDF', 'Senha AES-256 para abrir o arquivo.', 'Segurança', 'lock', PDF),

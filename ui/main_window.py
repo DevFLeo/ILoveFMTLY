@@ -1,5 +1,6 @@
 """Janela principal: hub de blocos + editor, ligados ao core."""
 
+import importlib
 from functools import partial
 from pathlib import Path
 
@@ -55,6 +56,12 @@ TOOL_HINTS = {
     'web2pdf': 'Documento convertido para PDF A4. Ajuste e clique em Exportar PDF.',
     'ebook2pdf': 'E-book convertido para PDF. Ajuste e clique em Exportar PDF.',
 }
+
+
+def resolve_fn(name: str):
+    """'pdf_to_text' -> core.convert.pdf_to_text; 'docx_tools.clean' -> core.docx_tools.clean."""
+    module, _, attr = name.rpartition('.')
+    return getattr(importlib.import_module(f'core.{module}') if module else convert, attr)
 
 
 class MainWindow(QMainWindow):
@@ -298,7 +305,7 @@ class MainWindow(QMainWindow):
                 sources.append(copy)
             else:
                 sources.append(f)
-        fn = getattr(convert, tool.fn)
+        fn = resolve_fn(tool.fn)
         busy = (f'Convertendo com o {OFFICE_LABEL[tool.needs]}…' if tool.needs
                 else f'{tool.title}…')
 
@@ -310,7 +317,7 @@ class MainWindow(QMainWindow):
             return
 
         if tool.mode == 'file':
-            default = files[0].stem + ('_comparacao' if tool.id == 'compare' else '') + tool.ext
+            default = files[0].stem + tool.out_suffix + tool.ext
             out, _ = QFileDialog.getSaveFileName(self, tool.title, default,
                                                  f'{tool.ext[1:].upper()} (*{tool.ext})')
             if not out:
@@ -318,6 +325,9 @@ class MainWindow(QMainWindow):
             target = Path(out)
             if target.suffix.lower() != tool.ext:
                 target = target.with_name(target.name + tool.ext)
+            if any(target.resolve() == Path(f).resolve() for f in files):
+                dialogs.error(self, tool.title, 'Escolha outro nome: o arquivo original não é sobrescrito.')
+                return
             self._run(busy, partial(fn, sources, target, **params),
                       done_msg=lambda res: f'Arquivo salvo em:\n{res[0]}')
             return

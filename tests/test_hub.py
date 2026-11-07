@@ -43,7 +43,7 @@ def ids(tools):
 
 
 def test_compatible_by_format():
-    assert {'word2pdf'} == ids(compatible([Path('a.docx')]))
+    assert {'word2pdf', 'docxclean', 'docxreplace', 'docx2text'} == ids(compatible([Path('a.docx')]))
     pdf = ids(compatible([Path('a.pdf')]))
     assert {'merge', 'split', 'numbers', 'pdf2word', 'protect'} <= pdf
     assert 'word2pdf' not in pdf and 'sign' not in pdf  # "em breve" nunca aparece

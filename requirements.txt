@@ -4,6 +4,10 @@ pikepdf>=9.0
 Pillow>=10.0       # imagens, GIF animado
 openpyxl>=3.1      # PDF para Excel
 markdown>=3.5      # Markdown para PDF
+python-docx>=1.2   # Word B: DOCX sem o Word
+docxcompose>=1.4    # juntar DOCX
+mammoth>=1.8        # DOCX para HTML
+markdownify>=0.13   # HTML para Markdown
 pywin32>=306       # conversões com o Office local via COM (Windows)
 
 # desenvolvimento

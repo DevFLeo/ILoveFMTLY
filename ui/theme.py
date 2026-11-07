@@ -76,6 +76,7 @@ GROUP_GLYPH = {
     'PDF para…': (Color.DANGER, Color.TEXT),
     '…para PDF': (Color.WINE, Color.ACCENT),
     'Converter': (Color.DANGER, Color.TEXT),
+    'Word': (Color.SURFACE_HOVER, Color.ACCENT),
     'Imagens': (Color.ACCENT, Color.WINE),
     'Editar': (Color.WINE, Color.ACCENT),
     'Segurança': (Color.ACCENT, Color.WINE),

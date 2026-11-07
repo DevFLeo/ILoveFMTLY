@@ -10,7 +10,7 @@ pois extrai tudo numa pasta temporária a cada execução).
 import os
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 ROOT = Path(SPECPATH)
 ONEFILE = os.environ.get('ILOVEFMTLY_ONEFILE') == '1'
@@ -35,7 +35,8 @@ a = Analysis(
     pathex=[str(ROOT)],
     binaries=[],
     datas=[(str(ROOT / 'assets'), 'assets'),
-           (str(ROOT / 'scripts' / 'setup_printer.ps1'), 'scripts')],
+           (str(ROOT / 'scripts' / 'setup_printer.ps1'), 'scripts'),
+           *collect_data_files('docx'), *collect_data_files('docxcompose')],
     hiddenimports=hidden,
     excludes=excluded,
     noarchive=False,
