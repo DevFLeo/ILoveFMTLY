@@ -12,7 +12,7 @@ from core.workspace import Workspace  # noqa: E402
 from ui import dialogs  # noqa: E402
 from ui.main_window import MainWindow  # noqa: E402
 from ui.side_home import HOME, SideHome  # noqa: E402
-from ui.tools import CATEGORIES, CATEGORY_BY_ID, TOOLS  # noqa: E402
+from ui.tools import CATEGORIES, CATEGORY_BY_ID  # noqa: E402
 
 
 @pytest.fixture
@@ -36,8 +36,15 @@ def test_sidebar_is_default(window):
     assert set(window.home.nav_buttons) == {HOME} | {c.id for c in CATEGORIES}
 
 
-def test_home_lists_every_ready_tool(window):
-    assert len(window.home.cards) == sum(1 for t in TOOLS if not t.soon)
+def test_home_shows_only_favorites(window, settings):
+    assert window.home.cards == [] and not window.home.empty.isHidden()  # sem favoritos ainda
+    assert 'Editar favoritos' in window.home.empty.text()
+    settings.pinned = ['merge', 'json-format']
+    window.rebuild_home()
+    assert [c.tool.id for c in window.home.cards] == ['merge', 'json-format']
+    assert not window.home.edit_favs.isHidden()
+    window.home.nav_buttons['pdf'].click()
+    assert window.home.edit_favs.isHidden()
 
 
 def test_section_tabs_and_search(window):
@@ -69,25 +76,31 @@ def test_click_selects_double_click_opens(qtbot):
     assert opened == ['sign', 'sign']
 
 
-def test_pin_saves_and_shows_in_fixed_row(window, settings):
+def test_favorite_button_saves_and_shows_on_home(window, settings):
     window.home.nav_buttons['dev'].click()
     window.home.select('hash')
     window.home.pin_btn.click()
     assert Settings.load(settings.path).pinned == ['hash']
     home = window.home  # foi recriada, no mesmo lugar
     assert home.section == 'dev' and home.selected == 'hash'
-    assert [c.tool.id for c in home.fixed_cards] == ['hash']
-    assert home.pin_btn.text() == 'Desafixar'
+    assert home.pin_btn.text() == 'Tirar dos favoritos'
+    home.nav_buttons['home'].click()
+    assert [c.tool.id for c in home.cards] == ['hash']
+    home.select('hash')
     home.pin_btn.click()
     assert Settings.load(settings.path).pinned == []
 
 
-def test_profile_favorites_fill_fixed_row(qtbot, tmp_path):
-    s = Settings(name='Ana', profile='estudante')
-    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False, settings=s)
-    qtbot.addWidget(w)
-    assert w.home.title.text() == 'Olá, Ana!'
-    assert [c.tool.id for c in w.home.fixed_cards][:2] == ['merge', 'compress']
+def test_profile_only_suggests_favorites():
+    from ui.profile_dialog import apply_profile
+    s = Settings()
+    apply_profile(s, 'estudante')                       # vazio: recebe a sugestão
+    assert s.pinned[:2] == ['merge', 'compress']
+    apply_profile(s, 'empresa')                         # não mexeu: troca pela nova sugestão
+    assert s.pinned[0] == 'sign'
+    s.pinned.append('hash')                             # mexeu: o perfil não apaga mais nada
+    apply_profile(s, 'pessoal')
+    assert s.pinned[-1] == 'hash' and s.profile == 'pessoal'
 
 
 def test_layout_switch_in_settings(window, settings, monkeypatch):

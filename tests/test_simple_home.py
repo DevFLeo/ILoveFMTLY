@@ -56,7 +56,7 @@ def test_opens_on_simple_home(window):
     assert window.stack.currentWidget() is window.home
     assert window.on_hub()
     assert [c.key for c in window.home.home_cards] == [c.id for c in CATEGORIES]
-    assert window.home.favorites is None  # sem cadastro, sem favoritas
+    assert window.home.favorites.cards == []  # sem favoritos ainda, mas dá para editar
 
 
 def test_category_shows_only_its_tools_and_goes_back(window, qtbot):
@@ -87,7 +87,7 @@ def test_home_button_returns_to_chosen_mode(window, make_pdf):
 
 
 def test_profile_favorites_and_greeting(qtbot, tmp_path):
-    s = Settings(name='Ana', profile='instituicao', layout='blocks')
+    s = Settings(name='Ana', profile='instituicao', layout='blocks', pinned=['sign', 'redact', 'forms'])
     w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False, settings=s)
     qtbot.addWidget(w)
     assert w.home.title.text() == 'Olá, Ana!'
@@ -106,6 +106,7 @@ def test_welcome_saves_name_and_profile(window, settings, monkeypatch):
     window.maybe_welcome()
     saved = Settings.load(settings.path)
     assert (saved.name, saved.profile, saved.welcomed) == ('Bruno', 'empresa', 'sim')
+    assert saved.pinned[:2] == ['sign', 'pdf2excel']  # sugestão do perfil
     assert window.home.title.text() == 'Olá, Bruno!'
     window.maybe_welcome()  # segunda vez: não pergunta (exec não seria chamado de novo)
 
@@ -217,11 +218,10 @@ def test_redact_flow(window, qtbot, make_pdf, tmp_path, monkeypatch):
 
 
 # --- perfil Personalizado ---------------------------------------------------
-def test_custom_profile_pins_cards(window, settings, monkeypatch):
+def test_edit_favorites_on_blocks(window, settings, monkeypatch):
     from ui.profile_dialog import PinDialog
-    settings.profile = 'personalizado'
     window.rebuild_home()
-    assert window.home.pins_button is not None
+    assert window.home.pins_button is not None  # qualquer perfil (ou nenhum) edita
     assert window.home.favorites.cards == []
     monkeypatch.setattr(PinDialog, 'ask', classmethod(lambda cls, parent, pinned: ['sign', 'merge']))
     window.home.pins_button.click()
@@ -235,7 +235,7 @@ def test_pin_dialog_checks_and_filters(qtbot):
     qtbot.addWidget(d)
     assert d.pinned() == ['merge']
     d.items['sign'].setCheckState(Qt.Checked)
-    assert set(d.pinned()) == {'merge', 'sign'} and d.counter.text() == '2 FIXADOS'
+    assert d.pinned() == ['merge', 'sign'] and d.counter.text() == '2 FAVORITOS'
     d.filter('assin')
     assert not d.items['sign'].isHidden() and d.items['merge'].isHidden()
     assert 'ocr' not in d.items  # "em breve" não pode ser fixado

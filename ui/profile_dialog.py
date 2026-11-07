@@ -16,10 +16,21 @@ from ui.hub import Clickable, make_glyph
 from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.theme import FONTS, TEXT_SIZES, THEMES, Size, Space, glyph_for
-from ui.tools import BY_ID, GROUPS, PROFILES, TOOLS, Profile
+from ui.tools import BY_ID, GROUPS, PROFILE_BY_ID, PROFILES, TOOLS, Profile
 
 MODE_LABELS = {'simple': 'Simples', 'detailed': 'Detalhado (todas as ferramentas)'}
 LAYOUT_LABELS = {'sidebar': 'Barra lateral', 'blocks': 'Blocos grandes'}
+
+
+def apply_profile(settings: Settings, profile_id: str) -> None:
+    """O perfil só sugere: os favoritos viram a sugestão do perfil novo apenas se a pessoa
+    ainda não mexeu neles (vazios, ou iguais à sugestão do perfil anterior)."""
+    old = PROFILE_BY_ID.get(settings.profile)
+    new = PROFILE_BY_ID.get(profile_id)
+    untouched = not settings.pinned or (old is not None and settings.pinned == list(old.favorites))
+    settings.profile = profile_id
+    if untouched and new is not None:
+        settings.pinned = list(new.favorites)
 
 
 def _section(text: str) -> QLabel:
@@ -55,9 +66,9 @@ class ProfileCard(Clickable):
         layout.addWidget(glyph, 0, Qt.AlignHCenter)
         layout.addWidget(title)
         tools = (', '.join(BY_ID[i].title for i in profile.favorites[:3]) if profile.favorites
-                 else 'Os cards que você escolher')
+                 else 'Você escolhe tudo')
         for label, text in (('Objetivo', profile.goal), ('Ideal para', profile.ideal),
-                            ('Já vem com', tools)):
+                            ('Sugere', tools)):
             layout.addSpacing(Space.XS)
             head = QLabel(label)
             head.setObjectName('profileLabel')
@@ -83,7 +94,8 @@ class WelcomeDialog(QDialog):
 
         title = QLabel('Vamos deixar o app com a sua cara')
         title.setObjectName('hubTitle')
-        hint = QLabel('Isso fica salvo neste computador. Dá para mudar depois em Configurações.')
+        hint = QLabel('O perfil só sugere os primeiros favoritos: você põe e tira ferramentas quando '
+                      'quiser. Fica salvo neste computador.')
         hint.setProperty('tone', 'muted')
         self.name = QLineEdit(settings.name, placeholderText='ex.: Ana')
         self.name.setMaxLength(40)
@@ -138,7 +150,7 @@ class WelcomeDialog(QDialog):
         if not self.choice:
             return
         self.settings.name = self.name.text().strip()
-        self.settings.profile = self.choice
+        apply_profile(self.settings, self.choice)
         self.settings.welcomed = 'sim'
         super().accept()
 
@@ -224,7 +236,8 @@ class SettingsDialog(QDialog):
         s.theme, s.font = self.theme.currentData(), self.font.currentData()
         s.text_size, s.mode = self.text_size.currentData(), self.mode.currentData()
         s.layout = self.layout_box.currentData()
-        s.name, s.profile = self.name.text().strip(), self.profile.currentData()
+        s.name = self.name.text().strip()
+        apply_profile(s, self.profile.currentData())
         s.welcomed = 'sim'
         self.appearance_changed = (s.theme, s.font, s.text_size) != before
         super().accept()
@@ -240,7 +253,8 @@ class PinDialog(QDialog):
 
     def __init__(self, parent, pinned: list[str]):
         super().__init__(parent)
-        self.setWindowTitle('Escolher cards fixados')
+        self.initial = list(pinned)
+        self.setWindowTitle('Editar favoritos')
         self.search = QLineEdit(placeholderText='Buscar ferramenta…')
         self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self.filter)
@@ -269,7 +283,7 @@ class PinDialog(QDialog):
         cancel = QPushButton('Cancelar')
         cancel.setProperty('variant', 'ghost')
         cancel.clicked.connect(self.reject)
-        save = QPushButton('Fixar cards')
+        save = QPushButton('Salvar favoritos')
         save.setProperty('variant', 'primary')
         save.setDefault(True)
         save.clicked.connect(self.accept)
@@ -282,7 +296,7 @@ class PinDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(Space.XL, Space.XL, Space.XL, Space.XL)
         layout.setSpacing(Space.SM)
-        layout.addWidget(_section('Marque os cards que ficam no topo da tela simples'))
+        layout.addWidget(_section('Marque as ferramentas que ficam nos Favoritos'))
         layout.addWidget(self.search)
         layout.addWidget(self.list, 1)
         layout.addSpacing(Space.SM)
@@ -291,7 +305,7 @@ class PinDialog(QDialog):
         self._count()
 
     def _count(self, *_):
-        self.counter.setText(f'{len(self.pinned())} FIXADOS')
+        self.counter.setText(f'{len(self.pinned())} FAVORITOS')
 
     def filter(self, text: str):
         terms = _fold(text).split()
@@ -301,7 +315,9 @@ class PinDialog(QDialog):
             item.setHidden(not all(term in hay for term in terms))
 
     def pinned(self) -> list[str]:
-        return [tid for tid, item in self.items.items() if item.checkState() == Qt.Checked]
+        """Mantém a ordem antiga e põe os novos no fim."""
+        checked = [tid for tid, item in self.items.items() if item.checkState() == Qt.Checked]
+        return [t for t in self.initial if t in checked] + [t for t in checked if t not in self.initial]
 
     @classmethod
     def ask(cls, parent, pinned: list[str]) -> list[str] | None:

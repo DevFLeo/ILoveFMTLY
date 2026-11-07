@@ -1,9 +1,10 @@
 """Tela simples com barra lateral (layout "sidebar").
 
-Barra lateral na cor de destaque com um ícone por tipo de arquivo; no topo, a
-saudação e a busca; abas com os grupos do tipo escolhido; ao centro, a grade de
-ferramentas num painel; à direita, o detalhe da ferramenta selecionada com
-"Abrir ferramenta" e "Fixar"; embaixo, os cards fixados.
+Barra lateral na cor de destaque: Favoritos (o início) e um ícone por tipo de
+arquivo. No topo, a saudação e a busca; abas com os grupos do tipo escolhido; ao
+centro, a grade num painel; à direita, o detalhe da ferramenta com "Abrir
+ferramenta" e "Favoritar". O início mostra só os favoritos (Settings.pinned),
+que a pessoa edita à vontade; o perfil só sugere os primeiros.
 
 Um clique seleciona, duplo clique (ou Enter no botão) abre.
 """
@@ -16,12 +17,11 @@ from ui.hub import ToolCard, _availability, _fold, ghost_button, make_glyph
 from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.theme import Color, Size, Space
-from ui.tools import BY_ID, CATEGORIES, CATEGORY_BY_ID, CATEGORY_GROUP, GROUPS, PROFILE_BY_ID, TOOLS, Tool
+from ui.tools import BY_ID, CATEGORIES, CATEGORY_BY_ID, CATEGORY_GROUP, GROUPS, PROFILE_BY_ID, Tool
 
 GRID_COLUMNS = 3
 NAV_BUTTON = 44   # px
 DETAIL_WIDTH = 270
-PINNED_MAX = 6
 HOME = 'home'
 
 
@@ -48,7 +48,6 @@ class SideHome(QWidget):
         self.apps = apps
         self.pinned = list(pinned or [])
         prof = PROFILE_BY_ID.get(profile)
-        self.fixed_ids = self.pinned or (list(prof.favorites) if prof else [])
         self.section = HOME
         self.group = ''
         self.selected: str | None = None
@@ -62,7 +61,7 @@ class SideHome(QWidget):
         nav.setSpacing(Space.SM)
         self.nav_group = QButtonGroup(self)
         self.nav_buttons: dict[str, QPushButton] = {}
-        order = [(HOME, 'Início', 'house')] + [(c.id, c.title, c.icon) for c in CATEGORIES]
+        order = [(HOME, 'Favoritos', 'star')] + [(c.id, c.title, c.icon) for c in CATEGORIES]
         if prof:  # perfil decide a ordem dos tipos
             rank = {cid: i for i, cid in enumerate(prof.categories)}
             order = order[:1] + sorted(order[1:], key=lambda o: rank.get(o[0], 99))
@@ -136,10 +135,14 @@ class SideHome(QWidget):
         scroll.setWidget(self.grid_box)
         self.empty = QLabel('Nenhuma ferramenta encontrada.')
         self.empty.setProperty('tone', 'muted')
+        self.empty.setWordWrap(True)
+        self.edit_favs = ghost_button('Editar favoritos', 'square-pen', self.pins_clicked.emit, 'pinsButton')
+        self.edit_favs.setToolTip('Escolha quais ferramentas ficam nos Favoritos.')
         head = QHBoxLayout()
         head.addWidget(self.panel_title)
         head.addWidget(self.panel_count, 0, Qt.AlignBottom)
         head.addStretch(1)
+        head.addWidget(self.edit_favs)
         panel = QVBoxLayout(self.panel)
         panel.setContentsMargins(Space.XL, Space.XL, Space.LG, Space.XL)
         panel.setSpacing(Space.MD)
@@ -194,42 +197,12 @@ class SideHome(QWidget):
         middle.addWidget(self.panel, 1)
         middle.addWidget(self.detail)
 
-        # --- fixados -------------------------------------------------------------------
-        self.fixed_row = QHBoxLayout()
-        self.fixed_row.setSpacing(Space.MD)
-        fixed_head = QHBoxLayout()
-        label = QLabel('FIXADOS' if self.pinned else
-                       (f'SUAS FERRAMENTAS · {prof.title.upper()}' if prof else 'FIXADOS'))
-        label.setObjectName('groupHeader')
-        fixed_head.addWidget(label)
-        fixed_head.addStretch(1)
-        if prof and prof.id == 'personalizado':
-            fixed_head.addWidget(ghost_button('Escolher cards', 'layout-grid', self.pins_clicked.emit,
-                                              'pinsButton'))
-        self.fixed_cards: list[ToolCard] = []
-        for tid in self.fixed_ids[:PINNED_MAX]:
-            tool = BY_ID.get(tid)
-            if tool is None or tool.soon:
-                continue
-            enabled, reason = _availability(tool, apps)
-            card = ToolCard(tool, enabled, reason)
-            card.clicked.connect(self.tool_clicked.emit)
-            self.fixed_cards.append(card)
-            self.fixed_row.addWidget(card, 1)
-        if not self.fixed_cards:
-            tip = QLabel('Selecione uma ferramenta e clique em "Fixar" para ela aparecer aqui.')
-            tip.setProperty('tone', 'muted')
-            self.fixed_row.addWidget(tip)
-        self.fixed_row.addStretch(0 if self.fixed_cards else 1)
-
         # --- montagem --------------------------------------------------------------------
         content = QVBoxLayout()
         content.setSpacing(Space.LG)
         content.addLayout(top)
         content.addWidget(tabs_box)
         content.addLayout(middle, 1)
-        content.addLayout(fixed_head)
-        content.addLayout(self.fixed_row)
         root = QHBoxLayout(self)
         root.setContentsMargins(Space.XL, Space.XL, Space.XXL, Space.XL)
         root.setSpacing(Space.XXL)
@@ -239,16 +212,17 @@ class SideHome(QWidget):
 
     # --- navegação ------------------------------------------------------------------------
     def section_tools(self) -> list[Tool]:
-        if self.section == HOME:
-            return [t for t in TOOLS if not t.soon]
+        if self.section == HOME:  # só os favoritos, na ordem em que foram escolhidos
+            return [BY_ID[i] for i in self.pinned if i in BY_ID and not BY_ID[i].soon]
         return [BY_ID[i] for i in CATEGORY_BY_ID[self.section].tools]
 
     def show_section(self, key: str):
         self.section = key
         self.group = ''
         self.nav_buttons[key].setChecked(True)
-        title = 'Todas as ferramentas' if key == HOME else CATEGORY_BY_ID[key].title
+        title = 'Seus favoritos' if key == HOME else CATEGORY_BY_ID[key].title
         self.panel_title.setText(title)
+        self.edit_favs.setVisible(key == HOME)
         self._build_tabs()
         self.refresh()
 
@@ -304,6 +278,11 @@ class SideHome(QWidget):
         # o QScrollArea não cresce sozinho com a grade: fixa a altura mínima dela
         self.grid_box.setMinimumHeight(rows * Size.CARD_HEIGHT + max(0, rows - 1) * self.grid.verticalSpacing())
         self.panel_count.setText(f'{len(tools)} FERRAMENTAS')
+        if self.section == HOME and not self.pinned:
+            self.empty.setText('Nenhum favorito ainda. Clique em "Editar favoritos" ou escolha um tipo de '
+                               'arquivo na barra ao lado e use "Favoritar" na ferramenta.')
+        else:
+            self.empty.setText('Nenhuma ferramenta encontrada.')
         self.empty.setVisible(not tools)
         ready = [t for t in tools if _availability(t, self.apps)[0]]
         if self.selected not in {t.id for t in tools}:
@@ -332,7 +311,7 @@ class SideHome(QWidget):
         self.d_desc.setText(tool.desc)
         exts = ', '.join(sorted(e.lstrip('.').upper() for e in tool.accepts)) or 'texto digitado'
         self.d_accepts.setText(f'Aceita: {exts}')
-        self.pin_btn.setText('Desafixar' if tool.id in self.pinned else 'Fixar')
+        self.pin_btn.setText('Tirar dos favoritos' if tool.id in self.pinned else 'Favoritar')
 
     def open_selected(self):
         if self.selected:
