@@ -46,3 +46,6 @@ Desktop.ini
 
 # --- ferramentas locais do Claude Code -------------------------------------------
 .claude/settings.local.json
+
+# --- executável copiado para a raiz ------------------------------------------
+/*.exe
