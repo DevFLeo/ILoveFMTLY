@@ -69,7 +69,7 @@ THEMES: dict[str, dict[str, str]] = {
         'ON_FILE_EXCEL': '#FFFFFF',
         'FILE_DEV': '#6B6E99',
         'ON_FILE_DEV': '#FFFFFF',
-        'FILE_IMAGE': '#E3E4FF',
+        'FILE_IMAGE': '#DCDEF5',
         'ON_FILE_IMAGE': '#0C0C16',
     },
     'Tema Claude': {
@@ -78,7 +78,7 @@ THEMES: dict[str, dict[str, str]] = {
         'BORDER': '#453A55',
         'ACCENT': '#E0875F',
         'ACCENT_TEXT': '#F2A27C',
-        'DANGER': '#C2362F',
+        'DANGER': '#D6455D',
         'WINE': '#4A2233',
         'BG_SUNKEN': '#17141F',
         'SURFACE_HOVER': '#332B42',
@@ -91,12 +91,12 @@ THEMES: dict[str, dict[str, str]] = {
         'TEXT_DISABLED': '#76687E',
         'TEXT_ON_ACCENT': '#1E1A2B',
         'TEXT_ON_DANGER': '#F5EEE6',
-        'FILE_PDF': '#C2362F',
+        'FILE_PDF': '#D6455D',
         'ON_FILE_PDF': '#F5EEE6',
         'FILE_WORD': '#6FB0DA',
         'ON_FILE_WORD': '#1E1A2B',
         'FILE_EXCEL': '#3DA874',
-        'ON_FILE_EXCEL': '#FFFFFF',
+        'ON_FILE_EXCEL': '#1E1A2B',
         'FILE_DEV': '#988CA6',
         'ON_FILE_DEV': '#1E1A2B',
         'FILE_IMAGE': '#F5EEE6',
@@ -121,12 +121,12 @@ THEMES: dict[str, dict[str, str]] = {
         'TEXT_DISABLED': '#565257',
         'TEXT_ON_ACCENT': '#101011',
         'TEXT_ON_DANGER': '#FFFFFF',
-        'FILE_PDF': '#C0392B',
+        'FILE_PDF': '#D9534F',
         'ON_FILE_PDF': '#FFFFFF',
-        'FILE_WORD': '#5AAFE0',
+        'FILE_WORD': '#8FB3D9',
         'ON_FILE_WORD': '#101011',
-        'FILE_EXCEL': '#21A366',
-        'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_EXCEL': '#7FBF8E',
+        'ON_FILE_EXCEL': '#101011',
         'FILE_DEV': '#807A7D',
         'ON_FILE_DEV': '#101011',
         'FILE_IMAGE': '#F2F0EE',
@@ -138,7 +138,7 @@ THEMES: dict[str, dict[str, str]] = {
         'BORDER': '#3D3837',
         'ACCENT': '#A11A17',
         'ACCENT_TEXT': '#E0605C',
-        'DANGER': '#FF6B5E',
+        'DANGER': '#FF8A80',
         'WINE': '#3A1514',
         'BG_SUNKEN': '#100C0D',
         'SURFACE_HOVER': '#2E2C2C',
@@ -153,10 +153,10 @@ THEMES: dict[str, dict[str, str]] = {
         'TEXT_ON_DANGER': '#171213',
         'FILE_PDF': '#A11A17',
         'ON_FILE_PDF': '#F4F1EC',
-        'FILE_WORD': '#5AAFE0',
+        'FILE_WORD': '#8AA9C2',
         'ON_FILE_WORD': '#171213',
-        'FILE_EXCEL': '#21A366',
-        'ON_FILE_EXCEL': '#FFFFFF',
+        'FILE_EXCEL': '#8DB89A',
+        'ON_FILE_EXCEL': '#171213',
         'FILE_DEV': '#8A8480',
         'ON_FILE_DEV': '#171213',
         'FILE_IMAGE': '#D2CEC7',
@@ -183,9 +183,9 @@ THEMES: dict[str, dict[str, str]] = {
         'TEXT_ON_DANGER': '#1A0D06',
         'FILE_PDF': '#D9412B',
         'ON_FILE_PDF': '#FFFFFF',
-        'FILE_WORD': '#5AAFE0',
+        'FILE_WORD': '#9DB8D9',
         'ON_FILE_WORD': '#1A0D06',
-        'FILE_EXCEL': '#3DAA6A',
+        'FILE_EXCEL': '#A8C98A',
         'ON_FILE_EXCEL': '#1A0D06',
         'FILE_DEV': '#B08A6A',
         'ON_FILE_DEV': '#1A0D06',
@@ -198,7 +198,7 @@ THEMES: dict[str, dict[str, str]] = {
         'BORDER': '#D9D3CC',
         'ACCENT': '#C8553D',
         'ACCENT_TEXT': '#C8553D',   # destaque usado como texto/ícone
-        'DANGER': '#B4182D',
+        'DANGER': '#B4183D',
         'WINE': '#F3D9CF',
         'BG_SUNKEN': '#ECE7E1',
         'SURFACE_HOVER': '#FBF4EF',
@@ -215,7 +215,7 @@ THEMES: dict[str, dict[str, str]] = {
         'FILE_WORD': '#3A8FC8', 'ON_FILE_WORD': '#FFFFFF',
         'FILE_EXCEL': '#1E8A4F', 'ON_FILE_EXCEL': '#FFFFFF',
         'FILE_DEV': '#6B7280', 'ON_FILE_DEV': '#FFFFFF',
-        'FILE_IMAGE': '#ECE7E1', 'ON_FILE_IMAGE': '#1D2033',
+        'FILE_IMAGE': '#E2DBD3', 'ON_FILE_IMAGE': '#1D2033',
     },
     'Alto contraste': {
         'BG': '#000000',
@@ -265,7 +265,7 @@ THEMES: dict[str, dict[str, str]] = {
         'FILE_WORD': '#3A8FC8', 'ON_FILE_WORD': '#FFFFFF',
         'FILE_EXCEL': '#1E8A4F', 'ON_FILE_EXCEL': '#FFFFFF',
         'FILE_DEV': '#6B7280', 'ON_FILE_DEV': '#FFFFFF',
-        'FILE_IMAGE': '#EFEFEF', 'ON_FILE_IMAGE': '#2B2B2B',
+        'FILE_IMAGE': '#E4E4E4', 'ON_FILE_IMAGE': '#2B2B2B',
     },
 }
 DEFAULT_THEME = 'Padrão escuro'
@@ -343,29 +343,77 @@ _BASE_SIZE = {k: getattr(Size, k) for k in ('CARD_HEIGHT', 'HOME_CARD_HEIGHT')}
 GROUP_GLYPH: dict[str, tuple[str, str]] = {}
 
 
+# --- relação de cores ------------------------------------------------------------
+# Cada grupo herda a cor do TIPO de arquivo (a mesma do bloco grande da categoria):
+# o ícone da ferramenta é uma tinta clara dessa cor com o símbolo na cor cheia.
+# Assim PDF fica vermelho do bloco ao card, Word azul, CSV verde, dev cinza.
+KIND_OF_GROUP = {
+    'Organizar': 'pdf', 'Otimizar': 'pdf', 'PDF para…': 'pdf', '…para PDF': 'pdf', 'Converter': 'pdf',
+    'Editar': 'pdf', 'Segurança': 'pdf', 'Word': 'word', 'CSV': 'excel', 'Imagens': 'image',
+    **{g: 'dev' for g in ('JSON', 'XML', 'YAML', 'TOML', 'Texto', 'Codificar', 'Cripto', 'QR e códigos',
+                          'IA', 'Geradores', 'Web')},
+}
+TINT = 0.22          # quanto da cor do tipo entra no fundo do ícone
+MIN_CONTRAST = 3.0   # WCAG para ícones e texto grande
+
+
+def _rgb(h: str) -> tuple[int, int, int]:
+    h = h.lstrip('#')
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
+
+
+def mix(a: str, b: str, amount: float) -> str:
+    """`amount` de `a` sobre `b` (0 = b, 1 = a)."""
+    ra, rb = _rgb(a), _rgb(b)
+    return '#' + ''.join(f'{round(x * amount + y * (1 - amount)):02X}' for x, y in zip(ra, rb))
+
+
+def _lum(h: str) -> float:
+    def ch(c):
+        c /= 255
+        return c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = _rgb(h)
+    return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b)
+
+
+def contrast(a: str, b: str) -> float:
+    hi, lo = sorted((_lum(a), _lum(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def readable(fg: str, bg: str, toward: str, minimum: float = MIN_CONTRAST) -> str:
+    """Aproxima `fg` de `toward` até ter contraste `minimum` sobre `bg`."""
+    for step in range(11):
+        cand = mix(toward, fg, step / 10)
+        if contrast(cand, bg) >= minimum:
+            return cand
+    return toward
+
+
+def tonal(kind: str) -> tuple[str, str]:
+    """(fundo, símbolo) do ícone de uma ferramenta do tipo `kind`."""
+    C = Color
+    base = getattr(C, f'FILE_{kind.upper()}')
+    bg = mix(base, C.SURFACE, TINT)
+    return bg, readable(base, bg, C.TEXT)
+
+
 def _group_glyph() -> dict[str, tuple[str, str]]:
     C = Color
-    return {
-        'Organizar': (C.ACCENT, C.TEXT_ON_ACCENT),
-        'Otimizar': (C.BORDER, C.ACCENT_TEXT),
-        'PDF para…': (C.DANGER, C.TEXT_ON_DANGER),
-        '…para PDF': (C.WINE, C.ACCENT_TEXT),
-        'Converter': (C.DANGER, C.TEXT_ON_DANGER),
-        'Word': (C.FILE_WORD, C.ON_FILE_WORD),
-        'Imagens': (C.FILE_IMAGE, C.ON_FILE_IMAGE),
-        'Editar': (C.WINE, C.ACCENT_TEXT),
-        'Segurança': (C.ACCENT, C.TEXT_ON_ACCENT),
-        'Em breve': (C.BORDER, C.TEXT_MUTED),
-        # por tipo de arquivo: blocos grandes e grupos de dev
-        'file:pdf': (C.FILE_PDF, C.ON_FILE_PDF),
-        'file:word': (C.FILE_WORD, C.ON_FILE_WORD),
-        'file:excel': (C.FILE_EXCEL, C.ON_FILE_EXCEL),
-        'file:dev': (C.FILE_DEV, C.ON_FILE_DEV),
-        'file:image': (C.FILE_IMAGE, C.ON_FILE_IMAGE),
-        **{g: (C.FILE_DEV, C.ON_FILE_DEV) for g in ('JSON', 'XML', 'YAML', 'TOML', 'Texto', 'Codificar',
-                                                    'Cripto', 'QR e códigos', 'IA', 'Geradores', 'Web')},
-        'CSV': (C.FILE_EXCEL, C.ON_FILE_EXCEL),
-    }
+    glyph = {g: tonal(k) for g, k in KIND_OF_GROUP.items()}
+    glyph['Em breve'] = (C.SURFACE_DISABLED, readable(C.TEXT_MUTED, C.SURFACE_DISABLED, C.TEXT))
+    # blocos grandes: a cor cheia do tipo, símbolo legível por cima
+    for kind in ('pdf', 'word', 'excel', 'dev', 'image'):
+        bg = getattr(C, f'FILE_{kind.upper()}')
+        fg = getattr(C, f'ON_FILE_{kind.upper()}')
+        dark = _lum(bg) > 0.3
+        glyph[f'file:{kind}'] = (bg, readable(fg, bg, '#000000' if dark else '#FFFFFF'))
+    return glyph
+
+
+def needs_outline(bg: str) -> bool:
+    """Fundo que some no card (ex.: branco das imagens em tema claro) ganha contorno."""
+    return contrast(bg, Color.SURFACE) < 1.5
 
 
 def glyph_for(group: str) -> tuple[str, str]:

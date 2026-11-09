@@ -151,7 +151,7 @@ def test_apply_appearance_and_back():
         assert theme.apply_appearance('Claro', 'Arial', 'Grande') == ('Claro', 'Arial', 'Grande')
         assert theme.Color.BG == theme.THEMES['Claro']['BG']
         assert theme.Type.SANS == 'Arial' and theme.Type.BODY > 10
-        assert theme.GROUP_GLYPH['Organizar'][0] == theme.THEMES['Claro']['ACCENT']
+        assert theme.GROUP_GLYPH['Organizar'] == theme.tonal('pdf')  # grupo segue o tipo de arquivo
         assert theme.apply_appearance('xyz', 'Comic', 'Gigante') == ('Padrão escuro', 'IBM Plex Sans', 'Normal')
         assert theme.apply_appearance('Noite')[0] == 'Tema Claude'  # nome antigo
     finally:
@@ -254,3 +254,17 @@ def test_welcome_custom_asks_pins(window, settings, monkeypatch):
     window.maybe_welcome()
     assert Settings.load(settings.path).pinned == ['redact']
     assert [c.tool.id for c in window.home.favorites.cards] == ['redact']
+
+
+def test_every_theme_glyph_is_readable():
+    """Relação de cores: todo ícone (grupo ou bloco) passa de 3:1 em todos os temas,
+    e cada grupo usa a cor do tipo de arquivo."""
+    try:
+        for name in theme.THEMES:
+            theme.apply_appearance(name)
+            for group, (bg, fg) in theme.GROUP_GLYPH.items():
+                assert theme.contrast(bg, fg) >= 3.0, (name, group)
+            pdf_bg, _ = theme.GROUP_GLYPH['Organizar']
+            assert pdf_bg == theme.mix(theme.Color.FILE_PDF, theme.Color.SURFACE, theme.TINT)
+    finally:
+        theme.apply_appearance()

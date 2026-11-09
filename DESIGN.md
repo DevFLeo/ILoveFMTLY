@@ -101,6 +101,15 @@ Tokens `FILE_*` / `ON_FILE_*` em cada tema: PDF vermelho, Word azul ciano suave,
 dev (fmtly) cinza visível, imagem e o resto branco. Usados nos blocos grandes (`CATEGORY_GROUP`)
 e nos grupos Word, Imagens, CSV e de dev (`GROUP_GLYPH`).
 
+### Relação de cores (tonal)
+
+Cada grupo de ferramenta herda a cor do seu tipo de arquivo (`KIND_OF_GROUP`): o ícone do card é
+uma tinta (`TINT` = 22 % da cor do tipo sobre `SURFACE`) com o símbolo na cor cheia, ajustado por
+`readable()` até 3:1. O bloco grande da categoria usa a cor cheia. Resultado: PDF é vermelho do bloco
+ao card, Word azul, CSV verde, dev cinza, imagem branca. Fundo que some no card (contraste < 1,5,
+ex.: branco em tema claro) ganha contorno `BORDER`. `test_every_theme_glyph_is_readable` cobra o
+mínimo de 3:1 em todos os temas. Perigo (`DANGER`) fica afastado do destaque em matiz ou em brilho.
+
 ## Telas iniciais
 
 - **Simples** (padrão): saudação "Olá, {nome}!", favoritas do perfil (`SUAS FERRAMENTAS`)

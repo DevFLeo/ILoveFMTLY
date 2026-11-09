@@ -21,7 +21,7 @@ from PySide6.QtWidgets import (QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEd
 
 from ui.icons import svg_icon, svg_pixmap
 from ui.style import set_prop
-from ui.theme import ASSETS, Size, Space, glyph_for
+from ui.theme import ASSETS, Color, Size, Space, glyph_for, needs_outline
 from ui.tools import (BY_ID, CATEGORIES, CATEGORY_BY_ID, CATEGORY_GROUP, GROUPS, OFFICE_LABEL,
                       PROFILE_BY_ID, TOOLS, Category, Tool, compatible)
 
@@ -82,7 +82,8 @@ def make_glyph(icon: str, group: str, box: int, size: int, name: str) -> QLabel:
     glyph.setObjectName(name)
     glyph.setFixedSize(box, box)
     glyph.setPixmap(svg_pixmap(icon, fg, size))
-    glyph.setStyleSheet(f'background:{bg};')  # cor por grupo vem dos tokens
+    outline = f' border: 1px solid {Color.BORDER};' if needs_outline(bg) else ''
+    glyph.setStyleSheet(f'background:{bg};{outline}')  # cor por grupo vem dos tokens
     return glyph
 
 
