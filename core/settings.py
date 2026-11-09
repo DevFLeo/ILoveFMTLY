@@ -50,6 +50,7 @@ class Settings:
     font: str = 'IBM Plex Sans'
     text_size: str = 'Normal'   # nome em ui/theme.TEXT_SIZES
     mascot: str = 'folha'       # ícone do app (core/mascot.MASCOTS)
+    recommendations: str = 'sim'  # 'sim' | 'não': faixa de recomendações embaixo do início
     welcomed: str = ''          # 'sim' depois que o cadastro já foi mostrado uma vez
     pinned: list[str] = field(default_factory=list)  # perfil Personalizado: cards fixados
     path: Path | None = field(default=None, repr=False, compare=False)

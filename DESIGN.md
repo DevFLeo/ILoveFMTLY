@@ -119,7 +119,8 @@ mínimo de 3:1 em todos os temas. Perigo (`DANGER`) fica afastado do destaque em
 - **Simples com barra lateral** (padrão, `layout="sidebar"`): barra lateral na cor `ACCENT` (raio XL)
   com um ícone por tipo de arquivo; abas dos grupos com sublinhado `ACCENT` de 3 px; grade em painel
   `SURFACE`; à direita, o detalhe (círculo na cor do tipo, título 15 pt, **Abrir ferramenta** e
-  Fixar); embaixo, os FIXADOS. Um clique seleciona, duplo clique abre.
+  Favoritar). O início mostra só os favoritos; embaixo, as RECOMENDAÇÕES (sugestões do perfil que
+  ainda não são favoritas; desliga em Configurações). Um clique seleciona, duplo clique abre.
 - **Detalhado**: todas as ferramentas por grupo, com busca.
 - O botão "Trocar para detalhado / simples" grava a escolha no `config.json`.
 

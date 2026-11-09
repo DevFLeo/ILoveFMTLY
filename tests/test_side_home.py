@@ -123,3 +123,16 @@ def test_claude_easter_egg_in_search(window):
     first = action.toolTip()
     action.trigger()
     assert action.toolTip() != first and window.home.search.placeholderText() == action.toolTip()
+
+
+def test_recommendations_row_and_toggle(qtbot, tmp_path):
+    s = Settings(profile='estudante', pinned=['merge'])
+    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False, settings=s)
+    qtbot.addWidget(w)
+    recs = [c.tool.id for c in w.home.rec_cards]
+    assert recs and 'merge' not in recs and recs[0] == 'compress'  # sugestão do perfil, sem os favoritos
+    w.home.rec_cards[0].clicked.emit('compress')
+    assert w.home.selected == 'compress' and w.home.pin_btn.text() == 'Favoritar'
+    s.recommendations = 'não'
+    w.rebuild_home()
+    assert w.home.rec_cards == []

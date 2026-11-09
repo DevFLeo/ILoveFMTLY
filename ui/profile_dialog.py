@@ -8,7 +8,7 @@ import unicodedata
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout,
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout,
                                QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton,
                                QVBoxLayout)
 
@@ -185,6 +185,8 @@ class SettingsDialog(QDialog):
         self.mascot.setIconSize(QSize(28, 28))
         self.mode = combo(list(MODE_LABELS.items()), settings.mode)
         self.layout_box = combo(list(LAYOUT_LABELS.items()), settings.layout)
+        self.recs = QCheckBox('Mostrar recomendações embaixo (barra lateral)')
+        self.recs.setChecked(settings.recommendations != 'não')
         self.name = QLineEdit(settings.name, placeholderText='ex.: Ana')
         self.name.setMaxLength(40)
         self.profile = combo([('', 'Nenhum')] + [(p.id, p.title) for p in PROFILES], settings.profile)
@@ -227,6 +229,7 @@ class SettingsDialog(QDialog):
         layout.addSpacing(Space.XL)
         layout.addWidget(_section('Tela inicial'))
         layout.addLayout(form(('Abrir em', self.mode), ('Visual da tela simples', self.layout_box)))
+        layout.addWidget(self.recs)
         layout.addSpacing(Space.XL)
         layout.addWidget(_section('Cadastro'))
         layout.addLayout(form(('Como devo te chamar?', self.name), ('Perfil', self.profile)))
@@ -243,6 +246,7 @@ class SettingsDialog(QDialog):
         s.theme, s.font = self.theme.currentData(), self.font.currentData()
         s.text_size, s.mode = self.text_size.currentData(), self.mode.currentData()
         s.layout = self.layout_box.currentData()
+        s.recommendations = 'sim' if self.recs.isChecked() else 'não'
         s.name = self.name.text().strip()
         apply_profile(s, self.profile.currentData())
         s.welcomed = 'sim'

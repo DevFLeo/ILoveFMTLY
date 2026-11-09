@@ -263,7 +263,11 @@ class MainWindow(QMainWindow):
         """(Re)cria a tela simples com o nome e o perfil atuais."""
         old = self.home
         page = SideHome if self.settings.layout == 'sidebar' else SimpleHome
-        self.home = page(self.apps, self.settings.name, self.settings.profile, self.settings.pinned)
+        if page is SideHome:
+            self.home = page(self.apps, self.settings.name, self.settings.profile, self.settings.pinned,
+                             recommendations=self.settings.recommendations != 'não')
+        else:
+            self.home = page(self.apps, self.settings.name, self.settings.profile, self.settings.pinned)
         if isinstance(self.home, SideHome):
             self.home.pin_toggled.connect(self.toggle_pin)
             if isinstance(old, SideHome):  # mantém onde a pessoa estava

@@ -20,6 +20,15 @@ from ui.theme import Color, Size, Space
 from ui.tools import BY_ID, CATEGORIES, CATEGORY_BY_ID, CATEGORY_GROUP, GROUPS, PROFILE_BY_ID, Tool
 
 GRID_COLUMNS = 3
+RECS_MAX = 4
+# sugestões para quem não tem perfil: as ferramentas mais comuns
+POPULAR = ('merge', 'compress', 'img2pdf', 'pdf2word', 'imgcompress', 'json-format', 'protect', 'sign')
+
+
+def recommended(profile_id: str) -> list[str]:
+    prof = PROFILE_BY_ID.get(profile_id)
+    ids = list(prof.favorites) if prof else []
+    return ids + [i for i in POPULAR if i not in ids]
 NAV_BUTTON = 44   # px
 DETAIL_WIDTH = 270
 HOME = 'home'
@@ -42,7 +51,7 @@ class SideHome(QWidget):
     pin_toggled = Signal(str)
 
     def __init__(self, apps: dict[str, bool], name: str = '', profile: str = '',
-                 pinned: list[str] | None = None):
+                 pinned: list[str] | None = None, recommendations: bool = True):
         super().__init__()
         self.setObjectName('sideHome')
         self.apps = apps
@@ -112,7 +121,7 @@ class SideHome(QWidget):
         self.tabs_row = QHBoxLayout()
         self.tabs_row.setSpacing(Space.XL)
         self.tab_group = QButtonGroup(self)
-        tabs_box = QWidget()
+        self.tabs_box = tabs_box = QWidget()
         tabs_box.setLayout(self.tabs_row)
 
         # --- painel central ------------------------------------------------------
@@ -204,12 +213,37 @@ class SideHome(QWidget):
         content.addLayout(top)
         content.addWidget(tabs_box)
         content.addLayout(middle, 1)
+        self.rec_cards: list[ToolCard] = []
+        if recommendations:
+            self._build_recommendations(content, prof)
         root = QHBoxLayout(self)
         root.setContentsMargins(Space.XL, Space.XL, Space.XXL, Space.XL)
         root.setSpacing(Space.XXL)
         root.addWidget(self.nav)
         root.addLayout(content, 1)
         self.show_section(HOME)
+
+    # --- recomendações ---------------------------------------------------------------
+    def _build_recommendations(self, content: QVBoxLayout, prof) -> None:
+        """Faixa embaixo: sugestões do perfil (ou as mais usadas) que ainda não são favoritas."""
+        ids = [i for i in recommended(prof.id if prof else '') if i not in self.pinned][:RECS_MAX]
+        if not ids:
+            return
+        head = QLabel('RECOMENDAÇÕES')
+        head.setObjectName('groupHeader')
+        head.setToolTip('Desligue em Configurações › Tela inicial.')
+        row = QHBoxLayout()
+        row.setSpacing(Space.MD)
+        for tid in ids:
+            tool = BY_ID[tid]
+            enabled, reason = _availability(tool, self.apps)
+            card = ToolCard(tool, enabled, reason)
+            card.clicked.connect(self.select)           # um clique mostra no detalhe (dá para Favoritar)
+            card.double_clicked.connect(self.tool_clicked.emit)
+            self.rec_cards.append(card)
+            row.addWidget(card, 1)
+        content.addWidget(head)
+        content.addLayout(row)
 
     # --- navegação ------------------------------------------------------------------------
     def section_tools(self) -> list[Tool]:
@@ -247,6 +281,7 @@ class SideHome(QWidget):
             self.tab_group.addButton(btn)
             self.tabs_row.addWidget(btn)
         self.tabs_row.addStretch(1)
+        self.tabs_box.setVisible(len(names) > 1)  # nos Favoritos não há abas
 
     def pick_group(self, group: str):
         self.group = group
