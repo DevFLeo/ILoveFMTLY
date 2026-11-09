@@ -22,11 +22,12 @@ EBOOK_EXTS = {'.epub', '.mobi', '.fb2', '.xps', '.oxps', '.cbz', '.svg'}
 EXCEL_EXTS = {'.xlsx', '.xls', '.xlsm', '.ods', '.csv'}
 POWERPOINT_EXTS = {'.pptx', '.ppt', '.pps', '.ppsx', '.odp'}
 WEB_EXTS = {'.html', '.htm', '.md', '.markdown', '.txt'}
-RASTER_EXTS = {'.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff', '.webp', '.gif', '.ico'}
+RASTER_EXTS = {'.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff', '.webp', '.gif', '.ico', '.avif'}
 
 IMAGE_FORMATS = {  # nome na interface: (extensão, formato do Pillow)
     'PNG': ('png', 'PNG'), 'JPG': ('jpg', 'JPEG'), 'WebP': ('webp', 'WEBP'),
     'BMP': ('bmp', 'BMP'), 'TIFF': ('tiff', 'TIFF'), 'ICO': ('ico', 'ICO'), 'GIF': ('gif', 'GIF'),
+    'AVIF': ('avif', 'AVIF'),
 }
 
 
@@ -53,7 +54,7 @@ def _save_image(img: Image.Image, target: Path, pil_format: str, quality: int = 
     if pil_format == 'ICO':
         img.save(target, 'ICO', sizes=[(s, s) for s in (16, 32, 48, 64, 128, 256)
                                        if s <= max(img.size)] or [(16, 16)])
-    elif pil_format in ('JPEG', 'WEBP'):
+    elif pil_format in ('JPEG', 'WEBP', 'AVIF'):
         img.save(target, pil_format, quality=quality, optimize=True)
     else:
         img.save(target, pil_format)

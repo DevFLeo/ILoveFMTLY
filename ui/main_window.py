@@ -1,30 +1,44 @@
 """Janela principal: hub de blocos + editor, ligados ao core."""
 
+import importlib
+import sys
 from functools import partial
 from pathlib import Path
 
-from PySide6.QtCore import QFileSystemWatcher, QSize, Qt, QTimer
+from PySide6.QtCore import QFileSystemWatcher, QProcess, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QImage, QKeySequence, QMovie, QPainter
 from PySide6.QtPrintSupport import QPrintDialog, QPrinter
-from PySide6.QtWidgets import (QFileDialog, QInputDialog, QLabel, QMainWindow,
+from PySide6.QtWidgets import (QApplication, QFileDialog, QInputDialog, QLabel, QMainWindow,
+                               QMessageBox,
                                QScrollArea, QSizePolicy, QSplitter, QStackedWidget,
                                QToolBar, QVBoxLayout, QWidget)
 
 from core import importer, printer
 from core.document import Document
-from core import convert
+from core import convert, video
+from core.video import VideoError
 from core.engines import mupdf, office, qpdf
 from core.export import export, split
 from core.history import History
+from core.settings import Settings
 from core.ranges import parse_ranges
 from core.workspace import Workspace
 from ui import dialogs
-from ui.hub import DropLayer, HubPage
-from ui.icons import glyph_icon
+from ui.crop_dialog import CropDialog
+from ui.dev_dialog import DevDialog
+from ui.video_gif_dialog import VideoGifDialog
+from ui.hub import DropLayer, HubPage, SimpleHome, category_page
+from ui.pdf_dialogs import FormsDialog, SignDialog
+from ui.profile_dialog import PinDialog, SettingsDialog, WelcomeDialog
+from ui.side_home import SideHome
+from ui import hub as hub_module
+from ui.mascot_ui import TaskNotifier, apply_mascot
+from core import mascot
+from ui.icons import svg_icon
 from ui.style import set_prop
 from ui.options_panel import OptionsPanel
 from ui.thumbnails import ThumbnailGrid
-from ui.tools import BY_ID, OFFICE_LABEL, Tool, accepts_count, file_filter
+from ui.tools import BY_ID, CUSTOM, OFFICE_LABEL, Tool, accepts_count, file_filter
 from ui.theme import ASSETS, Size
 from ui.viewer import Viewer
 from ui.worker import run_in_thread
@@ -57,11 +71,29 @@ TOOL_HINTS = {
 }
 
 
+def restart_app():
+    """Fecha e abre o app de novo (para aplicar tema, fonte e tamanho do texto)."""
+    if getattr(sys, 'frozen', False):
+        program, args = sys.executable, sys.argv[1:]
+    else:
+        program, args = sys.executable, [str(Path(sys.argv[0]).resolve()), *sys.argv[1:]]
+    if QProcess.startDetached(program, args):
+        QApplication.quit()
+
+
+def resolve_fn(name: str):
+    """'pdf_to_text' -> core.convert.pdf_to_text; 'docx_tools.clean' -> core.docx_tools.clean."""
+    module, _, attr = name.rpartition('.')
+    return getattr(importlib.import_module(f'core.{module}') if module else convert, attr)
+
+
 class MainWindow(QMainWindow):
     def __init__(self, workspace: Workspace, spool_dir: Path | None = printer.SPOOL_DIR,
-                 word_ok: bool | None = None):
+                 word_ok: bool | None = None, settings: Settings | None = None):
         super().__init__()
         self.ws = workspace
+        self.settings = settings if settings is not None else Settings()  # sem arquivo: testes
+        self._is_busy = False
         self.doc = Document()
         self.history = History(self.doc)
         if word_ok is None:
@@ -73,6 +105,11 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('ILoveFMTLY')
         self.resize(1280, 820)
         self.setAcceptDrops(True)
+        # mascote: ícone da janela/barra/bandeja; atalhos do Windows só no app de verdade
+        self.settings.mascot = mascot.valid(self.settings.mascot)
+        hub_module.LOGO['path'] = mascot.image_file(self.settings.mascot)
+        icon = apply_mascot(self.settings.mascot, self, shortcuts=self.settings.path is not None)
+        self.notifier = TaskNotifier(self, icon)
 
         # --- editor ---------------------------------------------------------
         self.grid = ThumbnailGrid()
@@ -104,12 +141,19 @@ class MainWindow(QMainWindow):
         editor_layout.addWidget(self.hint_bar)
         editor_layout.addWidget(split_view, 1)
 
-        # --- hub + camada ---------------------------------------------------
+        # --- telas iniciais + camada ----------------------------------------
+        # hub = modo detalhado (todas as ferramentas); home = tela simples;
+        # category = página de uma categoria aberta a partir da tela simples.
+        self.stack = QStackedWidget()
         self.hub = HubPage(self.apps)
         self.hub.tool_clicked.connect(self.run_tool)
-        self.stack = QStackedWidget()
+        self.hub.mode_clicked.connect(self.toggle_mode)
+        self.hub.settings_clicked.connect(self.open_settings)
         self.stack.addWidget(self.hub)
         self.stack.addWidget(self.editor)
+        self.home: SimpleHome | None = None
+        self.category: HubPage | None = None
+        self.rebuild_home()
         self.setCentralWidget(self.stack)
         self.layer = DropLayer(self.stack, self.apps)
         self.layer.tool_chosen.connect(self.run_tool)
@@ -117,7 +161,6 @@ class MainWindow(QMainWindow):
         # --- barra de status --------------------------------------------------
         self.status = QLabel()
         self.statusBar().addWidget(self.status)
-        self.statusBar().addPermanentWidget(QLabel('🔒 Offline — nada sai desta máquina'))
         self.theme_gif = self._make_theme_gif()
 
         self._build_actions()
@@ -152,30 +195,30 @@ class MainWindow(QMainWindow):
         if shortcut:
             act.setShortcut(QKeySequence(shortcut))
         if icon is not None:
-            act.setIcon(glyph_icon(icon))
+            act.setIcon(svg_icon(icon))
         act.setToolTip(f'{tip or text} ({shortcut})' if shortcut else (tip or text))
         return act
 
     def _build_actions(self):
-        self.act_home = self._action('Início', self.show_hub, 'Alt+Home', '⌂',
+        self.act_home = self._action('Início', self.show_hub, 'Alt+Home', 'house',
                                      'Voltar para as ferramentas')
-        self.act_import = self._action('Importar', self.import_dialog, 'Ctrl+O', '⊕',
+        self.act_import = self._action('Importar', self.import_dialog, 'Ctrl+O', 'file-plus',
                                        'Adicionar PDFs ou imagens ao documento')
-        self.act_clear = self._action('Novo', self.clear_document, 'Ctrl+N', '▢',
+        self.act_clear = self._action('Novo', self.clear_document, 'Ctrl+N', 'file',
                                       'Começar um documento vazio')
-        self.act_rot_l = self._action('Girar', lambda: self.rotate(-90), 'Ctrl+L', '↺', 'Girar para a esquerda')
-        self.act_rot_r = self._action('Girar', lambda: self.rotate(90), 'Ctrl+R', '↻', 'Girar para a direita')
-        self.act_delete = self._action('Excluir', self.delete_selected, 'Del', '✕',
+        self.act_rot_l = self._action('Girar', lambda: self.rotate(-90), 'Ctrl+L', 'rotate-ccw', 'Girar para a esquerda')
+        self.act_rot_r = self._action('Girar', lambda: self.rotate(90), 'Ctrl+R', 'rotate-cw', 'Girar para a direita')
+        self.act_delete = self._action('Excluir', self.delete_selected, 'Del', 'trash-2',
                                        'Excluir páginas selecionadas')
-        self.act_undo = self._action('Desfazer', self.undo, 'Ctrl+Z', '↶')
-        self.act_redo = self._action('Refazer', self.redo, 'Ctrl+Y', '↷')
-        self.act_extract = self._action('Extrair', self.extract_dialog, 'Ctrl+E', '⇱',
+        self.act_undo = self._action('Desfazer', self.undo, 'Ctrl+Z', 'undo-2')
+        self.act_redo = self._action('Refazer', self.redo, 'Ctrl+Y', 'redo-2')
+        self.act_extract = self._action('Extrair', self.extract_dialog, 'Ctrl+E', 'file-output',
                                         'Salvar só as páginas selecionadas')
-        self.act_split = self._action('Dividir', self.split_dialog, 'Ctrl+D', '✂',
+        self.act_split = self._action('Dividir', self.split_dialog, 'Ctrl+D', 'scissors',
                                       'Dividir em vários arquivos por intervalos')
-        self.act_meta = self._action('Metadados', self.show_metadata, None, 'ⓘ',
+        self.act_meta = self._action('Metadados', self.show_metadata, None, 'info',
                                      'Ver metadados dos arquivos de origem')
-        self.act_print = self._action('Imprimir', self.print_dialog, 'Ctrl+P', '⎙')
+        self.act_print = self._action('Imprimir', self.print_dialog, 'Ctrl+P', 'printer')
         self.act_export = self._action('Exportar PDF', self.export_dialog, 'Ctrl+S', None,
                                        'Gravar o documento final')
 
@@ -205,11 +248,119 @@ class MainWindow(QMainWindow):
         set_prop(export_btn, 'variant', 'primary')
 
     # --- navegação ------------------------------------------------------------
+    def start_page(self) -> QWidget:
+        return self.home if self.settings.mode == 'simple' else self.hub
+
     def show_hub(self):
+        """Volta para a tela inicial do modo escolhido (simples ou detalhado)."""
         self.layer.close_layer()
-        self.stack.setCurrentWidget(self.hub)
+        self.stack.setCurrentWidget(self.start_page())
         self.toolbar.hide()
         self.status.setText('Escolha uma ferramenta ou solte arquivos na tela.')
+
+    def rebuild_home(self):
+        """(Re)cria a tela simples com o nome e o perfil atuais."""
+        old = self.home
+        page = SideHome if self.settings.layout == 'sidebar' else SimpleHome
+        if page is SideHome:
+            self.home = page(self.apps, self.settings.name, self.settings.profile, self.settings.pinned,
+                             recommendations=self.settings.recommendations != 'não')
+        else:
+            self.home = page(self.apps, self.settings.name, self.settings.profile, self.settings.pinned)
+        if isinstance(self.home, SideHome):
+            self.home.pin_toggled.connect(self.toggle_pin)
+            if isinstance(old, SideHome):  # mantém onde a pessoa estava
+                self.home.show_section(old.section)
+                self.home.select(old.selected)
+        self.home.pins_clicked.connect(self.choose_pins)
+        self.home.category_clicked.connect(self.open_category)
+        self.home.tool_clicked.connect(self.run_tool)
+        self.home.mode_clicked.connect(self.toggle_mode)
+        self.home.settings_clicked.connect(self.open_settings)
+        self.stack.addWidget(self.home)
+        if old is not None:
+            if self.stack.currentWidget() is old:
+                self.stack.setCurrentWidget(self.home)
+            self.stack.removeWidget(old)
+            old.deleteLater()
+
+    def open_category(self, category_id: str):
+        old = self.category
+        self.category = category_page(self.apps, category_id)
+        self.category.tool_clicked.connect(self.run_tool)
+        self.category.back_clicked.connect(self.show_hub)
+        self.stack.addWidget(self.category)
+        self.stack.setCurrentWidget(self.category)
+        if old is not None:
+            self.stack.removeWidget(old)
+            old.deleteLater()
+        self.category.search.setFocus()
+
+    def toggle_mode(self):
+        self.settings.mode = 'detailed' if self.settings.mode == 'simple' else 'simple'
+        self._save_settings()
+        self.show_hub()
+
+    def _save_settings(self):
+        try:
+            self.settings.save()
+        except OSError as exc:
+            dialogs.error(self, 'Configurações', f'Não consegui salvar o config.json:\n{exc}')
+
+    def open_settings(self):
+        dialog = SettingsDialog(self, self.settings)
+        if dialog.exec() != SettingsDialog.Accepted:
+            return
+        self._save_settings()
+        if dialog.mascot_changed:  # vale na hora: janela, barra, bandeja, atalhos e o logo do topo
+            hub_module.LOGO['path'] = mascot.image_file(self.settings.mascot)
+            apply_mascot(self.settings.mascot, self, self.notifier.tray,
+                         shortcuts=self.settings.path is not None)
+            if hasattr(self.hub, 'logo'):
+                self.hub.logo.setPixmap(hub_module._logo().pixmap())
+        self.rebuild_home()
+        if self.on_hub():
+            self.show_hub()
+        self._ask_pins_if_empty()
+        if dialog.appearance_changed:
+            answer = QMessageBox.question(
+                self, 'Aplicar aparência',
+                'Tema, fonte e tamanho do texto mudam ao reabrir o app. Reabrir agora?')
+            if answer == QMessageBox.Yes:
+                restart_app()
+
+    def maybe_welcome(self):
+        """Na primeira vez, mostra o cadastro (nome + perfil)."""
+        if self.settings.welcomed:
+            return
+        WelcomeDialog(self, self.settings).exec()
+        self._save_settings()
+        self.rebuild_home()
+        self.show_hub()
+        self._ask_pins_if_empty()
+
+    def choose_pins(self):
+        """Perfil Personalizado: escolher os cards fixados no topo da tela simples."""
+        pinned = PinDialog.ask(self, self.settings.pinned)
+        if pinned is None:
+            return
+        self.settings.pinned = pinned
+        self._save_settings()
+        self.rebuild_home()
+
+    def toggle_pin(self, tool_id: str):
+        """Botão "Fixar" do layout com barra lateral."""
+        pins = self.settings.pinned
+        if tool_id in pins:
+            pins.remove(tool_id)
+        else:
+            pins.append(tool_id)
+        self._save_settings()
+        self.rebuild_home()
+
+    def _ask_pins_if_empty(self):
+        if self.settings.profile == CUSTOM and not self.settings.pinned:
+            self.choose_pins()
 
     def show_editor(self, hint: str = ''):
         self.stack.setCurrentWidget(self.editor)
@@ -218,7 +369,8 @@ class MainWindow(QMainWindow):
         self.hint_bar.setVisible(bool(hint))
 
     def on_hub(self) -> bool:
-        return self.stack.currentWidget() is self.hub
+        """Está numa tela inicial (simples, categoria ou detalhada)?"""
+        return self.stack.currentWidget() in (self.hub, self.home, self.category)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -234,6 +386,9 @@ class MainWindow(QMainWindow):
         if not self.available(tool):
             return
         self.layer.close_layer()
+        if tool.mode == 'dev':  # ferramentas de dev: abrem direto, arquivo é opcional
+            self._tool_dev(tool, [Path(f) for f in files or []])
+            return
         if files is None:
             files = self._pick_files(tool)
             if not files:
@@ -246,8 +401,23 @@ class MainWindow(QMainWindow):
             return
         if tool.mode == 'editor':
             self._tool_in_editor(tool, files)
+        elif tool.mode == 'dialog':
+            self._tool_dialog(tool, files[0])
         else:
             self._tool_convert(tool, files)
+
+    def _tool_dev(self, tool: Tool, files: list[Path]):
+        text, path = '', None
+        if files:
+            if tool.dev_input == 'file':
+                path = files[0]
+            else:
+                try:
+                    text = files[0].read_text(encoding='utf-8', errors='replace')
+                except OSError as exc:
+                    dialogs.error(self, tool.title, str(exc))
+                    return
+        DevDialog(self, tool, text, path).exec()
 
     def _pick_files(self, tool: Tool) -> list[Path]:
         if tool.multi:
@@ -282,6 +452,37 @@ class MainWindow(QMainWindow):
         if preset:
             preset()
 
+    def _tool_dialog(self, tool: Tool, src: Path):
+        """Recortar, borrar, vídeo para GIF, assinar, formulário: diálogo próprio,
+        depois o arquivo de destino."""
+        dialog = {'video': VideoGifDialog, 'sign': SignDialog,
+                  'forms': FormsDialog}.get(tool.dialog, CropDialog)
+        work = src
+        if src.suffix.lower() == '.pdf':  # cópia no workspace: senha e reparo, original intacto
+            work = self._import_with_password(src)
+            if work is None:
+                return
+        try:
+            values = dialog.ask(self, work, tool.dialog)
+        except (ValueError, VideoError) as exc:
+            dialogs.error(self, tool.title, str(exc))
+            return
+        if values is None:
+            return
+        ext = video.FORMATS[values['fmt']] if 'fmt' in values else src.suffix.lower()
+        default = str(src.with_name(src.stem + tool.out_suffix + ext))
+        out, _ = QFileDialog.getSaveFileName(self, tool.title, default, f'{ext[1:].upper()} (*{ext})')
+        if not out:
+            return
+        target = Path(out)
+        if target.suffix.lower() != ext:
+            target = target.with_name(target.name + ext)
+        if target.resolve() == src.resolve():
+            dialogs.error(self, tool.title, 'Escolha outro nome: o arquivo original não é sobrescrito.')
+            return
+        self._run(f'{tool.title}…', partial(resolve_fn(tool.fn), work, target, **values),
+                  done_msg=lambda res: f'Arquivo salvo em:\n{res}')
+
     def _tool_convert(self, tool: Tool, files: list[Path]):
         """Ferramentas de conversão: parâmetros, destino e execução em segundo plano."""
         params = {}
@@ -298,7 +499,7 @@ class MainWindow(QMainWindow):
                 sources.append(copy)
             else:
                 sources.append(f)
-        fn = getattr(convert, tool.fn)
+        fn = resolve_fn(tool.fn)
         busy = (f'Convertendo com o {OFFICE_LABEL[tool.needs]}…' if tool.needs
                 else f'{tool.title}…')
 
@@ -310,7 +511,7 @@ class MainWindow(QMainWindow):
             return
 
         if tool.mode == 'file':
-            default = files[0].stem + ('_comparacao' if tool.id == 'compare' else '') + tool.ext
+            default = files[0].stem + tool.out_suffix + tool.ext
             out, _ = QFileDialog.getSaveFileName(self, tool.title, default,
                                                  f'{tool.ext[1:].upper()} (*{tool.ext})')
             if not out:
@@ -318,6 +519,9 @@ class MainWindow(QMainWindow):
             target = Path(out)
             if target.suffix.lower() != tool.ext:
                 target = target.with_name(target.name + tool.ext)
+            if any(target.resolve() == Path(f).resolve() for f in files):
+                dialogs.error(self, tool.title, 'Escolha outro nome: o arquivo original não é sobrescrito.')
+                return
             self._run(busy, partial(fn, sources, target, **params),
                       done_msg=lambda res: f'Arquivo salvo em:\n{res[0]}')
             return
@@ -438,8 +642,11 @@ class MainWindow(QMainWindow):
             return None
 
     def _busy(self, on: bool, text: str = ''):
+        self._is_busy = on
         self.toolbar.setEnabled(not on)
-        self.hub.setEnabled(not on)
+        for page in (self.hub, self.home, self.category):
+            if page is not None:
+                page.setEnabled(not on)
         if on:
             self.status.setText(text)
             self.setCursor(Qt.WaitCursor)
@@ -448,13 +655,15 @@ class MainWindow(QMainWindow):
             self._update_state()
 
     def is_busy(self) -> bool:
-        return not self.hub.isEnabled()
+        return self._is_busy
 
     def _run(self, text, fn, *args, done_msg=None, on_done=None):
         self._busy(True, text)
+        started, task = self.notifier.start(), text.rstrip('…').strip()
 
         def ok(result):
             self._busy(False)
+            self.notifier.finished(task, started)  # aviso na bandeja se demorou e você saiu
             if on_done:
                 on_done(result)
             if done_msg:
@@ -462,6 +671,7 @@ class MainWindow(QMainWindow):
 
         def fail(exc):
             self._busy(False)
+            self.notifier.finished(task, started, exc)
             dialogs.error(self, 'Erro', str(exc))
 
         run_in_thread(fn, *args, on_done=ok, on_error=fail)

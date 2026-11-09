@@ -1,8 +1,11 @@
 """Diálogos pequenos: senha, metadados, mensagens."""
 
-from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFormLayout,
-                               QHeaderView, QInputDialog, QLineEdit, QMessageBox,
-                               QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout)
+from PySide6.QtWidgets import (QComboBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
+                               QHBoxLayout,
+                               QHeaderView, QInputDialog, QLabel, QLineEdit, QMessageBox,
+                               QPushButton, QSpinBox, QTableWidget, QTableWidgetItem, QVBoxLayout)
+
+from ui.theme import Space
 
 
 def ask_password(parent, filename: str, retry: bool) -> str | None:
@@ -21,15 +24,34 @@ def info(parent, title: str, message: str) -> None:
 
 
 class ParamDialog(QDialog):
-    """Formulário pequeno com os parâmetros de uma ferramenta (formato, DPI...)."""
+    """Parâmetros de uma ferramenta. Segue o DESIGN.md: sem caixas, rótulo de seção
+    em Mono, uma ação principal."""
 
     def __init__(self, parent, title: str, params):
         super().__init__(parent)
         self.setWindowTitle(title)
         self.fields = {}
+        section = QLabel(title.upper())
+        section.setProperty('role', 'section')
         form = QFormLayout()
+        form.setHorizontalSpacing(Space.LG)
+        form.setVerticalSpacing(Space.MD)
         for p in params:
-            if p.options:
+            row = None
+            if p.file_filter:
+                field = QLineEdit(p.default)
+                field.setPlaceholderText(p.hint or 'Nenhum arquivo')
+                pick = QPushButton('Escolher…')
+                pick.setProperty('variant', 'ghost')
+                pick.clicked.connect(lambda _=False, f=field, p=p: self._pick(f, p))
+                row = QHBoxLayout()
+                row.setSpacing(Space.SM)
+                row.addWidget(field, 1)
+                row.addWidget(pick)
+            elif isinstance(p.default, str) and not p.options:
+                field = QLineEdit(p.default)
+                field.setPlaceholderText(p.hint)
+            elif p.options:
                 field = QComboBox()
                 field.addItems(list(p.options))
                 field.setCurrentText(str(p.default))
@@ -39,18 +61,37 @@ class ParamDialog(QDialog):
                 field.setValue(int(p.default))
                 field.setSuffix(p.suffix)
             self.fields[p.key] = field
-            form.addRow(p.label, field)
-        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
-                                   accepted=self.accept, rejected=self.reject)
-        buttons.button(QDialogButtonBox.Ok).setText('Continuar')
-        buttons.button(QDialogButtonBox.Cancel).setText('Cancelar')
+            form.addRow(p.label, row if row is not None else field)
+        cancel = QPushButton('Cancelar', clicked=self.reject)
+        cancel.setProperty('variant', 'ghost')
+        ok = QPushButton('Continuar', clicked=self.accept)
+        ok.setProperty('variant', 'primary')
+        ok.setDefault(True)
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(cancel)
+        buttons.addWidget(ok)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(Space.XL, Space.XL, Space.XL, Space.XL)
+        layout.setSpacing(Space.LG)
+        layout.addWidget(section)
         layout.addLayout(form)
-        layout.addWidget(buttons)
+        layout.addSpacing(Space.SM)
+        layout.addLayout(buttons)
+
+    def _pick(self, field: QLineEdit, param):
+        chosen, _ = QFileDialog.getOpenFileName(self, param.label, field.text(), param.file_filter)
+        if chosen:
+            field.setText(chosen)
 
     def values(self) -> dict:
-        return {k: (f.currentText() if isinstance(f, QComboBox) else f.value())
-                for k, f in self.fields.items()}
+        def read(f):
+            if isinstance(f, QComboBox):
+                return f.currentText()
+            if isinstance(f, QLineEdit):
+                return f.text()
+            return f.value()
+        return {k: read(f) for k, f in self.fields.items()}
 
     @classmethod
     def ask(cls, parent, title: str, params) -> dict | None:

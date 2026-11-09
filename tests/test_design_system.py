@@ -10,6 +10,7 @@ from pathlib import Path  # noqa: E402
 import pytest  # noqa: E402
 from PySide6.QtCore import Qt  # noqa: E402
 
+from core.settings import Settings  # noqa: E402
 from core.workspace import Workspace  # noqa: E402
 from ui.main_window import MainWindow  # noqa: E402
 from ui.theme import GROUP_GLYPH  # noqa: E402
@@ -32,7 +33,8 @@ def test_every_group_has_glyph_colors():
 
 @pytest.fixture
 def window(qtbot, tmp_path):
-    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False)
+    w = MainWindow(Workspace(tmp_path / 'ws'), spool_dir=None, word_ok=False,
+                   settings=Settings(mode='detailed'))
     qtbot.addWidget(w)
     w.show()
     return w
@@ -55,7 +57,7 @@ def test_card_keyboard_activation(window, qtbot, key):
 
 
 def test_disabled_card_not_focusable(window):
-    assert card(window, 'sign').focusPolicy() == Qt.NoFocus
+    assert card(window, 'ocr').focusPolicy() == Qt.NoFocus
     assert card(window, 'word2pdf').focusPolicy() == Qt.NoFocus  # word_ok=False
 
 

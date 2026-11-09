@@ -1,3 +1,5 @@
+<img src="assets/logo.png" width="96" alt="Mascote do ILoveFMTLY">
+
 # ILoveFMTLY
 
 Aplicativo desktop para Windows que ajusta documentos sensíveis **sem enviá-los a nenhum servidor**. Tudo roda na própria máquina: a aplicação bloqueia o acesso à rede ao iniciar e não tem telemetria nem verificação de atualizações.
@@ -6,7 +8,21 @@ Próximos módulos, em ordem: ajustes em Word sem abrir o Word, visualizador de 
 
 ## Tela inicial: o canivete suíço
 
-A tela inicial mostra todas as ferramentas como blocos, com busca. Soltar arquivos em qualquer ponto dela abre uma camada com **só os blocos compatíveis** com aqueles arquivos. Todos os blocos funcionam pelo teclado (Tab, Enter, Espaço).
+Na primeira vez, o app pergunta **como devo te chamar** e o **perfil** (Pessoal, Estudante, Instituição, Empresa, Personalizado). O perfil só sugere os primeiros **favoritos**: a tela inicial mostra só eles, e você põe ou tira qualquer ferramenta ("Editar favoritos" ou "Favoritar").
+
+A tela inicial tem dois modos, com o botão **Trocar para detalhado / simples**:
+
+- **Simples com barra lateral** (padrão): uma barra lateral com os tipos de arquivo, abas por grupo, a grade de ferramentas, um painel com o detalhe da escolhida (Abrir / Fixar) e os cards fixados embaixo. Em Configurações dá para trocar pelo visual de **blocos grandes**.
+- **Simples em blocos**: blocos grandes por tipo de arquivo (PDF, Word e Office, Imagens, Vídeo e GIF, Web e e-book). Clicar num bloco abre uma página só com as ferramentas daquele tipo.
+- **Detalhado**: todas as ferramentas como blocos, por grupo, com busca.
+
+Cada tipo de arquivo tem uma cor: PDF vermelho, Word azul, CSV e planilhas verde, ferramentas de desenvolvedor cinza, imagens e o resto branco. O perfil **Personalizado** deixa a pessoa escolher os cards fixados no topo.
+
+As ferramentas de desenvolvedor seguem a lista do [fmtly.dev](https://fmtly.dev) (MIT), reescritas em Python e 100 % offline: abrem numa janela com entrada, opções e saída, rodando enquanto você digita.
+
+Em **Configurações**: tema (Padrão escuro, Padrão claro, Tema Claude, Umbra & Dreamless Sleep, Soft Spectrum, Soft Ambar, Claro, Alto contraste, Amarelo), fonte, tamanho do texto, modo inicial e cadastro. Tudo fica num `config.json` pequeno, ao lado do `.exe` (ou na raiz do projeto, rodando pelo Python). Tema, fonte e tamanho valem ao reabrir o app. O **mascote** (folha, raposa, coruja, tartaruga, castor) muda na hora o ícone da janela, da barra de tarefas e dos atalhos. Tarefas que passam de 10 s avisam pela bandeja do Windows quando terminam, se você estiver em outra janela.
+
+Soltar arquivos em qualquer ponto dela abre uma camada com **só os blocos compatíveis** com aqueles arquivos. Todos os blocos funcionam pelo teclado (Tab, Enter, Espaço).
 
 | Grupo | Ferramentas |
 |---|---|
@@ -14,9 +30,13 @@ A tela inicial mostra todas as ferramentas como blocos, com busca. Soltar arquiv
 | Otimizar | Comprimir PDF, Reparar PDF, Escala de cinza |
 | PDF para… | Word, Excel (tabelas), PowerPoint, imagem (PNG/JPG/WebP/TIFF...), GIF animado, TXT, HTML, SVG, Extrair imagens |
 | …para PDF | Word, Excel, PowerPoint, imagem, HTML/Markdown/TXT, e-book (EPUB, MOBI, FB2, XPS, CBZ, SVG) |
-| Imagens | Converter formato, Redimensionar, Comprimir, Criar GIF, GIF para quadros |
-| Editar | Numerar páginas, Marca d'água, Comparar dois PDFs |
-| Segurança | Proteger, Desbloquear, Remover metadados |
+| Word (sem Office) | Limpar DOCX (autor, comentários, revisões), Localizar e substituir, Juntar DOCX, DOCX para TXT/Markdown/HTML |
+| Imagens | Converter formato, Redimensionar, Comprimir, Recortar, Girar/espelhar, Remover EXIF/GPS, Marca d'água (texto ou logo), Borrar área, Criar GIF, Editar GIF (velocidade, trecho, largura, inverter, WebP), Vídeo para GIF/WebP (prévia e trecho), GIF para quadros |
+| Editar | Numerar páginas, Marca d'água, Comparar dois PDFs, Assinar PDF (desenho ou imagem), Preencher formulário |
+| Segurança | Proteger, Desbloquear, Remover metadados, Tarja (termos, CPF/CNPJ, e-mails e telefones; apaga de verdade) |
+| Imagens (extra) | Ajustar cores, Filtros, Cantos redondos e borda, Fundo transparente, Comprimir até um tamanho, Colagem, Paleta de cores, Favicon, Imagem ↔ Base64, Informações (EXIF/GPS), AVIF, Otimizar SVG |
+| Dev (do fmtly.dev) | **JSON** (21): formatar, validar, minificar, para YAML/TOML/CSV/XML/Markdown, JSON Schema, Go, TypeScript, Rust, Zod, achatar, JSON Patch, validar com schema, JSONPath, JMESPath, comparar, NDJSON, Protobuf · **XML** (10): formatar, validar, para JSON/YAML/CSV/Schema, minificar, XPath, comparar, XSD · **YAML** (11) · **CSV** (10): para JSON/XML/YAML/HTML/SQL, formatar, validar, comparar, colunas, duplicadas · **TOML** (8) · **Texto** (13) · **Codificar** (8): Base64, URL, entidades HTML, Unicode, Hex, ROT13/César, Punycode, JWT · **Cripto** (9): hash, HMAC, hash de arquivo, força da senha, texto aleatório, UUID/ULID, chaves RSA/EC, certificado X.509, TOTP · **QR** (3) · **IA** (3, estimativas offline) · **Geradores** (5) · **URL** |
+| Em breve | Editar PDF, OCR, PDF/A |
 
 As conversões de e para Word, Excel e PowerPoint usam o **Microsoft Office instalado**, numa instância invisível, só leitura, com macros desativadas e tempo limite. Sem o Office, esses blocos aparecem desativados. O resto não depende de nada além do próprio app.
 
@@ -45,6 +65,14 @@ python -m venv .venv
 ```
 
 Também é possível abrir arquivos direto: `.venv\Scripts\python app.py contrato.pdf`.
+
+## Gerar o .exe
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\build_exe.ps1
+```
+
+Roda os testes e empacota com PyInstaller. Resultado: `dist\ILoveFMTLY\ILoveFMTLY.exe`; copie a pasta `dist\ILoveFMTLY` inteira para onde quiser. O .exe não precisa de Python instalado. Opções: `-OneFile` gera um único `dist\ILoveFMTLY.exe` (abre mais devagar, pois extrai tudo a cada execução); `-SkipTests` pula os testes.
 
 ## Impressora virtual
 

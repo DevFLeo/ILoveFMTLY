@@ -1,7 +1,51 @@
+# --- Python ---------------------------------------------------------------
 .venv/
+venv/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# --- build do .exe (scripts/build_exe.ps1) -----------------------------------
 build/
 dist/
-*.egg-info/
+*.manifest
+
+# --- dados do usuário (core/settings.py, core/mascot.py) ---------------------
+config.json
+config.tmp
+*.tmp
+
+# --- execução local --------------------------------------------------------
+rodar.bat
+rodar.log
+*.log
+
+# --- arquivos de teste manual na raiz (exportados pelo app) ---------------------
+/*.pdf
+/*.docx
+/*.xlsx
+/*.pptx
+/*.png
+/*.jpg
+/*.gif
+/*.webp
+
+# --- editores e sistema ------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# --- ferramentas locais do Claude Code -------------------------------------------
+.claude/settings.local.json
+
+# --- executável copiado para a raiz ------------------------------------------
+/*.exe
