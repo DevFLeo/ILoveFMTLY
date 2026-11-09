@@ -303,8 +303,7 @@ class HubPage(_Page):
             actions = [self.toggle,
                        ghost_button('Configurações', 'settings', self.settings_clicked.emit)]
         self._header(title or 'Ferramentas para seus documentos',
-                     subtitle or 'Tudo roda neste computador. Solte arquivos em qualquer lugar '
-                                 'desta tela para ver o que dá para fazer com eles.',
+                     subtitle or 'Solte arquivos em qualquer lugar desta tela para ver o que dá para fazer com eles.',
                      actions, logo=not self.is_category)
 
         self.search = QLineEdit(placeholderText='Buscar ferramenta…  (ex.: gif, word, senha, comprimir)')

@@ -99,7 +99,7 @@ class SideHome(QWidget):
         # --- topo -------------------------------------------------------------
         self.title = QLabel(f'Olá, {name}!' if name else 'Olá!')
         self.title.setObjectName('hubTitle')
-        hint = QLabel('Tudo roda neste computador. Solte arquivos em qualquer lugar.')
+        hint = QLabel('Solte arquivos em qualquer lugar.')
         hint.setObjectName('hubSubtitle')
         self.search = QLineEdit(placeholderText='Buscar ferramenta…')
         self.search.setObjectName('sideSearch')

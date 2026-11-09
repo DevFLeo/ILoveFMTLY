@@ -161,7 +161,6 @@ class MainWindow(QMainWindow):
         # --- barra de status --------------------------------------------------
         self.status = QLabel()
         self.statusBar().addWidget(self.status)
-        self.statusBar().addPermanentWidget(QLabel('🔒 Offline — nada sai desta máquina'))
         self.theme_gif = self._make_theme_gif()
 
         self._build_actions()
