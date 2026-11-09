@@ -22,7 +22,6 @@ config.tmp
 *.tmp
 
 # --- execução local --------------------------------------------------------
-rodar.bat
 rodar.log
 *.log
 
@@ -46,6 +45,3 @@ Desktop.ini
 
 # --- ferramentas locais do Claude Code -------------------------------------------
 .claude/settings.local.json
-
-# --- executável copiado para a raiz ------------------------------------------
-/*.exe
