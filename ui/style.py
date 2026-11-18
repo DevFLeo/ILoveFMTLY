@@ -142,6 +142,11 @@ QLabel#profileLabel {{ font-weight: 600; }}
 QLabel#profileText {{ color: {C.TEXT_MUTED}; font-size: {T.CAPTION}pt; }}
 QLabel#profileGlyph {{ border-radius: {Size.HOME_GLYPH // 2}px; }}
 QFrame#profileBar {{ border-radius: {Size.PROFILE_BAR // 2}px; }}
+QPushButton#mascotCard {{ background: {C.SURFACE}; border: 1px solid {C.BORDER}; border-radius: {R.MD}px;
+                          padding: {S.SM}px {S.MD}px; font-weight: 600; }}
+QPushButton#mascotCard:hover {{ border-color: {C.ACCENT}; background: {C.SURFACE_HOVER}; }}
+QPushButton#mascotCard:checked, QPushButton#mascotCard[selected="true"] {{
+    border: 2px solid {C.ACCENT}; background: {C.SURFACE_HOVER}; }}
 
 /* ---- assinatura ---- */
 QWidget#signPad {{ background: {C.SURFACE}; border: 1px dashed {C.BORDER}; border-radius: {R.LG}px; }}

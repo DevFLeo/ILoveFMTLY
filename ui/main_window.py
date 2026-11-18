@@ -35,11 +35,11 @@ from ui import hub as hub_module
 from ui.mascot_ui import TaskNotifier, apply_mascot
 from core import mascot
 from ui.icons import svg_icon
-from ui.style import set_prop
+from ui.style import apply_style, set_prop
 from ui.options_panel import OptionsPanel
 from ui.thumbnails import ThumbnailGrid
 from ui.tools import BY_ID, CUSTOM, OFFICE_LABEL, Tool, accepts_count, file_filter
-from ui.theme import ASSETS, Size
+from ui.theme import ASSETS, Size, apply_appearance
 from ui.viewer import Viewer
 from ui.worker import run_in_thread
 
@@ -307,6 +307,36 @@ class MainWindow(QMainWindow):
         except OSError as exc:
             dialogs.error(self, 'Configurações', f'Não consegui salvar o config.json:\n{exc}')
 
+    def apply_appearance_live(self):
+        """Aplica tema, fonte e tamanho do texto imediatamente na janela aberta."""
+        app = QApplication.instance()
+        apply_appearance(self.settings.theme, self.settings.font, self.settings.text_size)
+        if app is not None:
+            apply_style(app)
+        for act, icon_name in ((self.act_home, 'house'), (self.act_import, 'file-plus'),
+                               (self.act_clear, 'file'), (self.act_rot_l, 'rotate-ccw'),
+                               (self.act_rot_r, 'rotate-cw'), (self.act_delete, 'trash-2'),
+                               (self.act_undo, 'undo-2'), (self.act_redo, 'redo-2'),
+                               (self.act_extract, 'file-output'), (self.act_split, 'scissors'),
+                               (self.act_meta, 'info'), (self.act_print, 'printer')):
+            act.setIcon(svg_icon(icon_name))
+        old_hub = self.hub
+        on_detailed_hub = self.stack.currentWidget() is old_hub
+        search_text = old_hub.search.text() if old_hub is not None else ''
+        self.hub = HubPage(self.apps)
+        self.hub.tool_clicked.connect(self.run_tool)
+        self.hub.mode_clicked.connect(self.toggle_mode)
+        self.hub.settings_clicked.connect(self.open_settings)
+        if search_text:
+            self.hub.search.setText(search_text)
+        self.stack.insertWidget(0, self.hub)
+        if on_detailed_hub:
+            self.stack.setCurrentWidget(self.hub)
+        if old_hub is not None:
+            self.stack.removeWidget(old_hub)
+            old_hub.deleteLater()
+        self.rebuild_home()
+
     def open_settings(self):
         dialog = SettingsDialog(self, self.settings)
         if dialog.exec() != SettingsDialog.Accepted:
@@ -318,16 +348,13 @@ class MainWindow(QMainWindow):
                          shortcuts=self.settings.path is not None)
             if hasattr(self.hub, 'logo'):
                 self.hub.logo.setPixmap(hub_module._logo().pixmap())
-        self.rebuild_home()
+        if dialog.appearance_changed:
+            self.apply_appearance_live()
+        else:
+            self.rebuild_home()
         if self.on_hub():
             self.show_hub()
         self._ask_pins_if_empty()
-        if dialog.appearance_changed:
-            answer = QMessageBox.question(
-                self, 'Aplicar aparência',
-                'Tema, fonte e tamanho do texto mudam ao reabrir o app. Reabrir agora?')
-            if answer == QMessageBox.Yes:
-                restart_app()
 
     def maybe_welcome(self):
         """Na primeira vez, mostra o cadastro (nome + perfil)."""

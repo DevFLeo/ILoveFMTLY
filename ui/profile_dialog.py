@@ -7,7 +7,7 @@ rótulos de seção em Mono, uma ação principal por diálogo.
 import unicodedata
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout,
                                QLabel, QLineEdit, QListWidget, QListWidgetItem, QPushButton,
                                QVBoxLayout)
@@ -17,11 +17,31 @@ from core.settings import Settings
 from ui.hub import Clickable, make_glyph
 from ui.icons import svg_icon
 from ui.style import set_prop
-from ui.theme import FONTS, TEXT_SIZES, THEME_ALIASES, THEMES, Size, Space, glyph_for
+from ui.theme import FONTS, TEXT_SIZES, THEME_ALIASES, THEMES, Radius, Size, Space, glyph_for
 from ui.tools import BY_ID, GROUPS, PROFILE_BY_ID, PROFILES, TOOLS, Profile
 
-MODE_LABELS = {'simple': 'Simples', 'detailed': 'Detalhado (todas as ferramentas)'}
-LAYOUT_LABELS = {'sidebar': 'Barra lateral', 'blocks': 'Blocos grandes'}
+MODE_LABELS = {'simple': 'Simples (por tipo de arquivo)', 'detailed': 'Detalhado (todas as ferramentas)'}
+LAYOUT_LABELS = {'sidebar': 'Barra lateral (com painel de detalhes)', 'blocks': 'Blocos grandes (cartões por categoria)'}
+
+
+def _theme_swatch(theme_name: str, size: int = 22) -> QIcon:
+    """Ícone de amostra de cores (fundo, superfície e destaque) para o seletor de temas."""
+    colors = THEMES.get(theme_name, THEMES['Padrão escuro'])
+    pix = QPixmap(size * 2, size * 2)
+    pix.setDevicePixelRatio(2)
+    pix.fill(Qt.transparent)
+    p = QPainter(pix)
+    p.setRenderHint(QPainter.Antialiasing)
+    p.setPen(QColor(colors['BORDER']))
+    p.setBrush(QColor(colors['BG']))
+    p.drawRoundedRect(1, 1, size - 2, size - 2, Radius.SM, Radius.SM)
+    p.setPen(Qt.NoPen)
+    p.setBrush(QColor(colors['SURFACE']))
+    p.drawRoundedRect(3, 3, (size - 6) // 2, size - 6, Radius.XS, Radius.XS)
+    p.setBrush(QColor(colors['ACCENT']))
+    p.drawEllipse(size // 2, size // 2 - 4, 8, 8)
+    p.end()
+    return QIcon(pix)
 
 
 def apply_profile(settings: Settings, profile_id: str) -> None:
@@ -177,19 +197,53 @@ class SettingsDialog(QDialog):
             return box
 
         self.theme = combo([(t, t) for t in THEMES], THEME_ALIASES.get(settings.theme, settings.theme))
+        for i, t in enumerate(THEMES):
+            self.theme.setItemIcon(i, _theme_swatch(t))
+        self.theme.setIconSize(QSize(22, 22))
         self.font = combo([(f, f) for f in FONTS], settings.font)
         self.text_size = combo([(s, s) for s in TEXT_SIZES], settings.text_size)
         self.mascot = combo([(m, mascot.LABELS[m]) for m in mascot.MASCOTS], settings.mascot)
         for i, m in enumerate(mascot.MASCOTS):  # cada opção mostra o próprio mascote
             self.mascot.setItemIcon(i, QIcon(str(mascot.image_file(m))))
         self.mascot.setIconSize(QSize(28, 28))
+
+        self.mascot_cards: dict[str, QPushButton] = {}
+        mascot_row = QHBoxLayout()
+        mascot_row.setSpacing(Space.SM)
+        for m in mascot.MASCOTS:
+            btn = QPushButton(QIcon(str(mascot.image_file(m))), mascot.LABELS[m])
+            btn.setObjectName('mascotCard')
+            btn.setCheckable(True)
+            btn.setIconSize(QSize(28, 28))
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(lambda _=False, key=m: self._pick_mascot(key))
+            self.mascot_cards[m] = btn
+            mascot_row.addWidget(btn, 1)
+        self.mascot.currentIndexChanged.connect(
+            lambda _: self._sync_mascot_cards(self.mascot.currentData()))
+        self._sync_mascot_cards(self.mascot.currentData())
+        self.mascot.hide()  # mantido sincronizado para compatibilidade; na UI aparecem os botões visuais
+
         self.mode = combo(list(MODE_LABELS.items()), settings.mode)
+        self.layout_label = QLabel('Visual da tela simples')
         self.layout_box = combo(list(LAYOUT_LABELS.items()), settings.layout)
-        self.recs = QCheckBox('Mostrar recomendações embaixo (barra lateral)')
+        self.recs = QCheckBox('Mostrar sugestões de ferramentas embaixo (na barra lateral)')
         self.recs.setChecked(settings.recommendations != 'não')
+        self.mode.currentIndexChanged.connect(self._sync_home_options)
+        self.layout_box.currentIndexChanged.connect(self._sync_home_options)
+        self._sync_home_options()
+
         self.name = QLineEdit(settings.name, placeholderText='ex.: Ana')
         self.name.setMaxLength(40)
-        self.profile = combo([('', 'Nenhum')] + [(p.id, p.title) for p in PROFILES], settings.profile)
+        self.profile = combo([('', 'Nenhum (escolher manualmente)')] + [(p.id, p.title) for p in PROFILES],
+                             settings.profile)
+        for i, p in enumerate(PROFILES, start=1):
+            self.profile.setItemIcon(i, svg_icon(p.icon))
+        self.profile_hint = QLabel()
+        self.profile_hint.setProperty('tone', 'muted')
+        self.profile_hint.setWordWrap(True)
+        self.profile.currentIndexChanged.connect(self._sync_profile_hint)
+        self._sync_profile_hint()
 
         def form(*rows):
             f = QFormLayout()
@@ -199,8 +253,7 @@ class SettingsDialog(QDialog):
                 f.addRow(label, widget)
             return f
 
-        note = QLabel('Tema, fonte e tamanho do texto valem ao reabrir o app. O mascote muda na hora '
-                      '(janela, barra de tarefas e atalhos).')
+        note = QLabel('As alterações de tema, fonte, tamanho do texto e mascote são aplicadas na hora ao salvar.')
         note.setProperty('tone', 'muted')
         where = QLabel(f'Salvo em: {settings.path}' if settings.path else 'Não salvo em arquivo.')
         where.setProperty('tone', 'muted')
@@ -224,21 +277,53 @@ class SettingsDialog(QDialog):
         layout.setSpacing(Space.SM)
         layout.addWidget(_section('Aparência'))
         layout.addLayout(form(('Tema', self.theme), ('Fonte', self.font),
-                              ('Tamanho do texto', self.text_size), ('Mascote', self.mascot)))
+                              ('Tamanho do texto', self.text_size)))
+        layout.addSpacing(Space.XS)
+        layout.addWidget(QLabel('Mascote (ícone do aplicativo)'))
+        layout.addLayout(mascot_row)
         layout.addWidget(note)
         layout.addSpacing(Space.XL)
         layout.addWidget(_section('Tela inicial'))
-        layout.addLayout(form(('Abrir em', self.mode), ('Visual da tela simples', self.layout_box)))
+        layout.addLayout(form(('Abrir em', self.mode), (self.layout_label, self.layout_box)))
         layout.addWidget(self.recs)
         layout.addSpacing(Space.XL)
         layout.addWidget(_section('Cadastro'))
         layout.addLayout(form(('Como devo te chamar?', self.name), ('Perfil', self.profile)))
+        layout.addWidget(self.profile_hint)
         layout.addSpacing(Space.XL)
         layout.addWidget(where)
         layout.addSpacing(Space.SM)
         layout.addLayout(buttons)
-        self.setMinimumWidth(480)
+        self.setMinimumWidth(560)
         self.appearance_changed = self.mascot_changed = False
+
+    def _pick_mascot(self, key: str):
+        idx = self.mascot.findData(key)
+        if idx >= 0:
+            self.mascot.setCurrentIndex(idx)
+        self._sync_mascot_cards(key)
+
+    def _sync_mascot_cards(self, current: str):
+        for k, btn in self.mascot_cards.items():
+            btn.setChecked(k == current)
+            set_prop(btn, 'selected', k == current)
+
+    def _sync_home_options(self, *_):
+        is_simple = self.mode.currentData() == 'simple'
+        is_sidebar = is_simple and self.layout_box.currentData() == 'sidebar'
+        self.layout_label.setEnabled(is_simple)
+        self.layout_box.setEnabled(is_simple)
+        self.recs.setEnabled(is_sidebar)
+        self.layout_box.setToolTip('' if is_simple else 'Disponível quando "Abrir em" está no modo Simples.')
+        self.recs.setToolTip('' if is_sidebar else 'Disponível no modo Simples com visual de Barra lateral.')
+
+    def _sync_profile_hint(self, *_):
+        prof = PROFILE_BY_ID.get(self.profile.currentData())
+        if prof is None:
+            self.profile_hint.setText('Sem perfil: você escolhe manualmente todas as ferramentas favoritas.')
+            return
+        tools = ', '.join(BY_ID[i].title for i in prof.favorites[:4]) if prof.favorites else 'você escolhe tudo'
+        self.profile_hint.setText(f'{prof.goal} ({prof.ideal}) · Sugere: {tools}.')
 
     def accept(self):
         s = self.settings
