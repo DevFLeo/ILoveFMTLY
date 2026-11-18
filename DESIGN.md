@@ -36,8 +36,9 @@ criar tema é editar só esse dicionário (`test_themes_complete` cobra as chave
 Temas: **Padrão escuro** e **Padrão claro** (padrão; Medium Slate Blue `#6666FF`, Periwinkle,
 Columbia Blue, Rich Black `#0C0C16`, Celadon), **Tema Claude** (o antigo Noite, em tons de
 entardecer; a tabela abaixo é a paleta original dele), **Umbra & Dreamless Sleep**, **Soft Spectrum**,
-**Soft Ambar**, **Claro**, **Alto contraste** e **Amarelo**. `THEME_ALIASES` leva nomes antigos
-salvos ("Noite") ao tema novo.
+**Soft Ambar**, **Claro**, **Alto contraste**, **Amarelo**, **SAGA (Unisapiens)**, **Rosa**,
+**Verde**, **Azul** e **Roxo**. `THEME_ALIASES` leva nomes antigos salvos ("Noite", "SAGA", "Laranja")
+ao tema novo.
 
 Easter egg: o bichinho do Claude (pixel art, `assets/icons/clawd.svg`) fica dentro da busca;
 clicar nele troca a dica. Tema, fonte e

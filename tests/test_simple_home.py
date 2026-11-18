@@ -152,11 +152,32 @@ def test_apply_appearance_and_back():
         assert theme.Color.BG == theme.THEMES['Claro']['BG']
         assert theme.Type.SANS == 'Arial' and theme.Type.BODY > 10
         assert theme.GROUP_GLYPH['Organizar'] == theme.tonal('pdf')  # grupo segue o tipo de arquivo
+        assert theme.apply_appearance('SAGA (Unisapiens)')[0] == 'SAGA (Unisapiens)'
+        assert theme.Color.ACCENT == '#F39200' and theme.Color.TEXT == '#1A2332'
+        assert theme.apply_appearance('Laranja')[0] == 'SAGA (Unisapiens)'
+        assert theme.apply_appearance('Rosa')[0] == 'Rosa'
+        assert theme.apply_appearance('Verde')[0] == 'Verde'
+        assert theme.apply_appearance('Azul')[0] == 'Azul'
+        assert theme.apply_appearance('Roxo')[0] == 'Roxo'
         assert theme.apply_appearance('xyz', 'Comic', 'Gigante') == ('Padrão escuro', 'IBM Plex Sans', 'Normal')
         assert theme.apply_appearance('Noite')[0] == 'Tema Claude'  # nome antigo
     finally:
         theme.apply_appearance()
     assert theme.Type.BODY == 10 and theme.Color.BG == theme.THEMES['Padrão escuro']['BG']
+
+
+def test_live_theme_change_in_settings(window, settings, monkeypatch):
+    def fake_exec(dialog):
+        dialog.theme.setCurrentIndex(dialog.theme.findData('SAGA (Unisapiens)'))
+        dialog.accept()
+        return SettingsDialog.Accepted
+    try:
+        monkeypatch.setattr(SettingsDialog, 'exec', fake_exec)
+        window.open_settings()
+        assert settings.theme == 'SAGA (Unisapiens)'
+        assert theme.Color.ACCENT == '#F39200'
+    finally:
+        theme.apply_appearance()
 
 
 # --- assinar, formulário, tarja ----------------------------------------------

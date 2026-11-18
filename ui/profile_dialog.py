@@ -199,8 +199,8 @@ class SettingsDialog(QDialog):
                 f.addRow(label, widget)
             return f
 
-        note = QLabel('Tema, fonte e tamanho do texto valem ao reabrir o app. O mascote muda na hora '
-                      '(janela, barra de tarefas e atalhos).')
+        note = QLabel('Tema, fonte, tamanho do texto e mascote mudam na hora e ficam salvos '
+                      'para quando reabrir o app.')
         note.setProperty('tone', 'muted')
         where = QLabel(f'Salvo em: {settings.path}' if settings.path else 'Não salvo em arquivo.')
         where.setProperty('tone', 'muted')

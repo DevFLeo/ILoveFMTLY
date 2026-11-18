@@ -20,7 +20,7 @@ Cada tipo de arquivo tem uma cor: PDF vermelho, Word azul, CSV e planilhas verde
 
 As ferramentas de desenvolvedor seguem a lista do [fmtly.dev](https://fmtly.dev) (MIT), reescritas em Python e 100 % offline: abrem numa janela com entrada, opções e saída, rodando enquanto você digita.
 
-Em **Configurações**: tema (Padrão escuro, Padrão claro, Tema Claude, Umbra & Dreamless Sleep, Soft Spectrum, Soft Ambar, Claro, Alto contraste, Amarelo), fonte, tamanho do texto, modo inicial e cadastro. Tudo fica num `config.json` pequeno, ao lado do `.exe` (ou na raiz do projeto, rodando pelo Python). Tema, fonte e tamanho valem ao reabrir o app. O **mascote** (folha, raposa, coruja, tartaruga, castor) muda na hora o ícone da janela, da barra de tarefas e dos atalhos. Tarefas que passam de 10 s avisam pela bandeja do Windows quando terminam, se você estiver em outra janela.
+Em **Configurações**: tema (Padrão escuro, Padrão claro, Tema Claude, Umbra & Dreamless Sleep, Soft Spectrum, Soft Ambar, Claro, Alto contraste, Amarelo, SAGA (Unisapiens), Rosa, Verde, Azul, Roxo), fonte, tamanho do texto, modo inicial e cadastro. Tudo fica num `config.json` pequeno, ao lado do `.exe` (ou na raiz do projeto, rodando pelo Python). Tema, fonte e tamanho mudam na hora e valem ao reabrir o app. O **mascote** (folha, raposa, coruja, tartaruga, castor) muda na hora o ícone da janela, da barra de tarefas e dos atalhos. Tarefas que passam de 10 s avisam pela bandeja do Windows quando terminam, se você estiver em outra janela.
 
 Soltar arquivos em qualquer ponto dela abre uma camada com **só os blocos compatíveis** com aqueles arquivos. Todos os blocos funcionam pelo teclado (Tab, Enter, Espaço).
 
